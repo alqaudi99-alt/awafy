@@ -5,8 +5,7 @@ Secrets check passed: no keys committed, prescription storage private, prices se
 
 Fix file: `supabase/migrations/20261103000004_security_review_fixes.sql`
 **Status: applied to the dev database on 4 Nov 2026 after owner approval; 20 access checks passed.**
-update because it removes and replaces access rules; it was sent while the owner was away and
-auto-cancelled. To apply: owner approves, then Claude re-runs it and repeats the access-rule tests.
+Findings 1–7 below are fixed and verified on the dev database.
 
 | # | Severity | Finding | Fix status |
 |---|---|---|---|
