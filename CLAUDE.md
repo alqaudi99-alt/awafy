@@ -23,7 +23,9 @@ Read it fully before doing any work. Keep it current; it is the project's standi
   **Only the awafy/awaffy/dwa subdomains belong to this project. Never touch the others.**
 - Connected (3 Nov 2026): Hostinger, Supabase (free org; dev project `awafy-dev`, ref
   `trkvqcysplagdwyukskq`, region ap-south-1, TEST DATA ONLY), Expo, Notion.
-- Not yet in place: GitHub link, production Supabase project (region pending legal advice),
+- GitHub: private repo `alqaudi99-alt/awafy` (connected 4 Nov 2026). New work goes on feature
+  branches from `dev`; `main` only receives reviewed, releasable code.
+- Not yet in place: production Supabase project (region pending legal advice),
   app-store accounts.
 
 ## 3. Target architecture
@@ -108,4 +110,4 @@ Include budget/subscription changes when any occur.
 | 2026-11-03 | Dev database `awafy-dev` created on Supabase free plan (USD 0), Mumbai region, fictional data only | Done |
 | 2026-11-03 | Project dashboard kept in Notion (connected) with a mirror in `docs/` | Done |
 | 2026-11-04 | Security review fixes (0004) approved by owner ("proceed") and applied to dev; 0005 trigger fix, 0006 stock + drivers; 20/20 access checks passed | Done |
-| 2026-11-04 | GitHub repo `alqaudi99-alt/awafy` created by owner; upload waits for Claude GitHub App access | Waiting on owner |
+| 2026-11-04 | GitHub repo `alqaudi99-alt/awafy` (private) connected; full history pushed to `main`, `dev` branch created | Done |
