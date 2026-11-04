@@ -107,3 +107,4 @@ Include budget/subscription changes when any occur.
 | 2026-11-03 | Owner: "please proceed with update even if I'm closing the app" — read as go-ahead for Milestone 1 on the proposed architecture (no live sites, no real data, no spend) | Proceeding; owner may revise |
 | 2026-11-03 | Dev database `awafy-dev` created on Supabase free plan (USD 0), Mumbai region, fictional data only | Done |
 | 2026-11-03 | Project dashboard kept in Notion (connected) with a mirror in `docs/` | Done |
+| 2026-11-04 | Security review fixes (migration 0004) written; applying them needs owner approval because Supabase requires confirmation for rule replacement | Awaiting owner approval |
