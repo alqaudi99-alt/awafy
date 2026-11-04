@@ -385,7 +385,8 @@ function AdminPharmacies({ pharmacies, onChange }: { pharmacies: Pharmacy[]; onC
   const toggle = async (p: Pharmacy) => {
     const ok = window.confirm(p.is_verified ? `إيقاف اعتماد ${p.name_ar}؟` : `اعتماد ${p.name_ar} بعد التحقق من الترخيص ${p.license_number}؟`);
     if (!ok) return;
-    const { error } = await supabase.from('pharmacies').update({ is_verified: !p.is_verified }).eq('id', p.id);
+    // Verification goes through an admin-only database function (security review #1).
+    const { error } = await supabase.rpc('admin_set_pharmacy_verified', { p_pharmacy_id: p.id, p_verified: !p.is_verified });
     setMsg(error ? errorText(error) : null);
     onChange();
   };
