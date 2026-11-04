@@ -1,6 +1,9 @@
+// localStorage is still used for non-sensitive preferences (language, cart).
 import 'expo-sqlite/localStorage/install';
 import { createClient } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
+
+import { secureSessionStorage } from './secure-storage';
 
 // Publishable values only. Data is protected by Row Level Security in the database.
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -12,7 +15,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    storage: localStorage,
+    storage: secureSessionStorage, // encrypted on phones (security review #11)
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: Platform.OS === 'web',

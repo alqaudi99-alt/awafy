@@ -53,3 +53,4 @@ table { width: 100%; border-collapse: collapse; background: var(--surface); bord
 th, td { padding: 8px; border-bottom: 1px solid var(--outline); text-align: start; }
 td input { width: 110px; }
 @media (max-width: 600px) { td input { width: 72px; } }
+.inline { flex-direction: row; align-items: center; gap: 8px; }

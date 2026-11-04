@@ -60,7 +60,8 @@
         {
           "photosPermission": "Awafy needs access to your photos so you can upload a prescription."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": false,

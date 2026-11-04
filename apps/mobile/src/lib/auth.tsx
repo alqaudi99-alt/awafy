@@ -3,13 +3,15 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 
 import { supabase } from './supabase';
 
-type AuthValue = { session: Session | null; ready: boolean };
+export type Role = 'customer' | 'pharmacy_staff' | 'driver' | 'admin' | 'clinical_reviewer';
+type AuthValue = { session: Session | null; ready: boolean; role: Role | null };
 
-const AuthContext = createContext<AuthValue>({ session: null, ready: false });
+const AuthContext = createContext<AuthValue>({ session: null, ready: false, role: null });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
+  const [roleFor, setRoleFor] = useState<{ userId: string; role: Role } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -20,7 +22,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  return <AuthContext.Provider value={{ session, ready }}>{children}</AuthContext.Provider>;
+  // The role decides which screens appear; the database still enforces every permission.
+  const userId = session?.user.id ?? null;
+  useEffect(() => {
+    if (!userId) return;
+    let alive = true;
+    supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single()
+      .then(({ data }) => alive && setRoleFor({ userId, role: (data?.role as Role) ?? 'customer' }));
+    return () => {
+      alive = false;
+    };
+  }, [userId]);
+
+  const role = userId && roleFor?.userId === userId ? roleFor.role : null;
+  return <AuthContext.Provider value={{ session, ready, role }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);

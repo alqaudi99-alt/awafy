@@ -4,7 +4,7 @@ Independent reviewer (separate AI agent that did not write the code). **No Criti
 Secrets check passed: no keys committed, prescription storage private, prices set by the database.
 
 Fix file: `supabase/migrations/20261103000004_security_review_fixes.sql`
-**Status: written, NOT yet applied to the dev database.** Supabase asks for a confirmation for this
+**Status: applied to the dev database on 4 Nov 2026 after owner approval; 20 access checks passed.**
 update because it removes and replaces access rules; it was sent while the owner was away and
 auto-cancelled. To apply: owner approves, then Claude re-runs it and repeats the access-rule tests.
 
@@ -18,9 +18,9 @@ auto-cancelled. To apply: owner approves, then Claude re-runs it and repeats the
 | 6 | Medium | Prescription file not checked, could be reused across orders | In fix file (file must exist, one use, one active per order) |
 | 7 | Medium | Clinical sign-off name/date could be overwritten | In fix file |
 | 8 | Medium | No access log or retention plan for prescription images | Open — needs legal advice on retention; access log planned for Milestone 6 |
-| 9 | Medium | Duplicate cart lines bypassed stock check; no open-order cap; stock not reduced | Partly in fix file (summed check, 5 open orders max). Stock reduction: Milestone 3 |
-| 10 | Medium | Order could go out with no driver; driver assignment not logged | In fix file. Pharmacy–driver link table: Milestone 4 |
-| 11 | Medium | SMS login abuse risk; login stored unencrypted on phone | Open — CAPTCHA + Oman-only SMS when provider chosen; secure storage in Milestone 4 |
+| 9 | Medium | Duplicate cart lines bypassed stock check; no open-order cap; stock not reduced | Fixed (0004 + 0006: summed check, 5 open orders max, stock reserved and returned on cancel) |
+| 10 | Medium | Order could go out with no driver; driver assignment not logged | Fixed (0004 + 0006: pharmacy–driver links) |
+| 11 | Medium | SMS login abuse risk; login stored unencrypted on phone | Partly fixed: login now encrypted on phones. CAPTCHA + Oman-only SMS when provider chosen |
 | 12 | Low-Med | Registration limits; de-verified pharmacy can still process orders | Partly in fix file (role check, 3 per account). Policy decision needed |
 | 13 | Low | Unlimited prescription uploads | Open — cleanup job in Milestone 6 |
 

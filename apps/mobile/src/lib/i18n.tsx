@@ -71,6 +71,15 @@ const ar = {
   retry: 'إعادة المحاولة',
   partnerNote: 'صاحب صيدلية؟ سجّل صيدليتك من لوحة الشركاء.',
   devBanner: 'نسخة تطوير — بيانات تجريبية فقط',
+  navDeliveries: 'توصيلاتي',
+  driverTitle: 'طلبات التوصيل',
+  noDeliveries: 'لا توجد طلبات توصيل حالياً',
+  pickupFrom: 'الاستلام من',
+  collectCash: 'المبلغ المطلوب تحصيله',
+  openMap: 'الخريطة',
+  callCustomer: 'اتصل بالعميل',
+  markDelivered: 'تم التسليم',
+  waitForPharmacy: 'بانتظار تجهيز الطلب في الصيدلية',
 };
 
 type Dict = typeof ar;
@@ -144,6 +153,15 @@ const en: Dict = {
   retry: 'Try again',
   partnerNote: 'Own a pharmacy? Register it from the partner dashboard.',
   devBanner: 'Development build — test data only',
+  navDeliveries: 'Deliveries',
+  driverTitle: 'Delivery jobs',
+  noDeliveries: 'No deliveries right now',
+  pickupFrom: 'Pick up from',
+  collectCash: 'Cash to collect',
+  openMap: 'Map',
+  callCustomer: 'Call customer',
+  markDelivered: 'Mark delivered',
+  waitForPharmacy: 'Waiting for the pharmacy to prepare the order',
 };
 
 export const statusLabels: Record<Lang, Record<OrderStatus, string>> = {

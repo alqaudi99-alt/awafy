@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { DriverDeliveries } from '@/components/driver-deliveries';
 import { AppText, Badge, Button, Card, ErrorState, Loading, Screen } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
@@ -9,7 +10,12 @@ import { statusLabels, useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import type { Order } from '@/lib/types';
 
-export default function Orders() {
+export default function OrdersTab() {
+  const { role } = useAuth();
+  return role === 'driver' ? <DriverDeliveries /> : <CustomerOrders />;
+}
+
+function CustomerOrders() {
   const { t, lang, pick, money } = useI18n();
   const { session } = useAuth();
   const [orders, setOrders] = useState<Order[] | null>(null);

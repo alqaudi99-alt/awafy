@@ -153,6 +153,8 @@ type OrderRow = {
   requires_rx: boolean;
   created_at: string;
   customer_id: string;
+  pharmacy_id: string;
+  driver_id: string | null;
   order_items: { id: number; product_name: string; quantity: number; unit_price_omr: number }[];
   prescriptions: { id: string; status: 'pending' | 'approved' | 'rejected'; storage_path: string; review_note: string | null }[];
 };
@@ -173,13 +175,27 @@ function beep() {
 function Orders() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [phones, setPhones] = useState<Record<string, string>>({});
+  const [drivers, setDrivers] = useState<{ pharmacy_id: string; driver_id: string; label: string }[]>([]);
   const [filter, setFilter] = useState<'open' | 'all'>('open');
   const [msg, setMsg] = useState<string | null>(null);
+
+  const loadDrivers = useCallback(async () => {
+    const { data: links } = await supabase.from('pharmacy_drivers').select('pharmacy_id, driver_id');
+    const ids = [...new Set((links ?? []).map((l) => l.driver_id))];
+    if (!ids.length) return setDrivers([]);
+    const { data: people } = await supabase.from('profiles').select('id, full_name, phone').in('id', ids);
+    const names = Object.fromEntries((people ?? []).map((p) => [p.id, p.full_name || p.phone || p.id.slice(0, 8)]));
+    setDrivers((links ?? []).map((l) => ({ ...l, label: names[l.driver_id] ?? l.driver_id.slice(0, 8) })));
+  }, []);
+
+  useEffect(() => {
+    loadDrivers();
+  }, [loadDrivers]);
 
   const load = useCallback(async () => {
     let q = supabase
       .from('orders')
-      .select('id, status, total_omr, delivery_address, requires_rx, created_at, customer_id, order_items(id, product_name, quantity, unit_price_omr), prescriptions(id, status, storage_path, review_note)')
+      .select('id, status, total_omr, delivery_address, requires_rx, created_at, customer_id, pharmacy_id, driver_id, order_items(id, product_name, quantity, unit_price_omr), prescriptions(id, status, storage_path, review_note)')
       .order('created_at', { ascending: false })
       .limit(100);
     if (filter === 'open') q = q.not('status', 'in', '(delivered,cancelled)');
@@ -282,6 +298,21 @@ function Orders() {
                   </>
                 )}
               </div>
+            )}
+            {['accepted', 'preparing', 'out_for_delivery'].includes(o.status) && (
+              <label className="inline">
+                المندوب
+                <select
+                  value={o.driver_id ?? ''}
+                  onChange={(e) => e.target.value && act(() => supabase.rpc('assign_driver', { p_order_id: o.id, p_driver_id: e.target.value }))}>
+                  <option value="">— اختر مندوباً —</option>
+                  {drivers
+                    .filter((d) => d.pharmacy_id === o.pharmacy_id)
+                    .map((d) => (
+                      <option key={d.driver_id} value={d.driver_id}>{d.label}</option>
+                    ))}
+                </select>
+              </label>
             )}
             <div className="row actions">
               {next && (
@@ -390,6 +421,12 @@ function AdminPharmacies({ pharmacies, onChange }: { pharmacies: Pharmacy[]; onC
     setMsg(error ? errorText(error) : null);
     onChange();
   };
+  const linkDriver = async (p: Pharmacy) => {
+    const phone = window.prompt(`رقم هاتف المندوب لصيدلية ${p.name_ar} (8 أرقام):`);
+    if (!phone) return;
+    const { error } = await supabase.rpc('admin_link_driver', { p_pharmacy_id: p.id, p_phone: phone });
+    setMsg(error ? errorText(error) : `تمت إضافة المندوب إلى ${p.name_ar}`);
+  };
   return (
     <section>
       <h2>الصيدليات</h2>
@@ -402,11 +439,15 @@ function AdminPharmacies({ pharmacies, onChange }: { pharmacies: Pharmacy[]; onC
               <td>{p.name_ar}</td>
               <td dir="ltr">{p.license_number}</td>
               <td>{p.is_verified ? 'معتمدة' : 'بانتظار التحقق'}</td>
-              <td><button className={p.is_verified ? 'ghost' : ''} onClick={() => toggle(p)}>{p.is_verified ? 'إيقاف' : 'اعتماد'}</button></td>
+              <td>
+                <button className={p.is_verified ? 'ghost' : ''} onClick={() => toggle(p)}>{p.is_verified ? 'إيقاف' : 'اعتماد'}</button>{' '}
+                <button className="ghost" onClick={() => linkDriver(p)}>إضافة مندوب</button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+      <p className="muted">لإضافة مندوب: يسجّل المندوب الدخول في التطبيق مرة واحدة برقم هاتفه، ثم أدخل رقمه هنا.</p>
     </section>
   );
 }
