@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
 import { useCart } from '@/lib/cart';
+import { DELIVERY_ENABLED } from '@/lib/features';
 import { useI18n, type TKey } from '@/lib/i18n';
 
 import { AppText } from './ui';
@@ -28,7 +29,7 @@ export function BottomBar() {
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, Spacing.sm) }]} accessibilityRole="tablist">
       {TABS.map((tab) => {
         const active = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href);
-        const base = tab.href === '/orders' && role === 'driver' ? t('navDeliveries') : t(tab.label);
+        const base = tab.href === '/orders' && DELIVERY_ENABLED && role === 'driver' ? t('navDeliveries') : t(tab.label);
         const label = tab.href === '/cart' && count > 0 ? `${base} (${count})` : base;
         return (
           <Pressable

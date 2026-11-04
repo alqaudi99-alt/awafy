@@ -54,3 +54,7 @@ th, td { padding: 8px; border-bottom: 1px solid var(--outline); text-align: star
 td input { width: 110px; }
 @media (max-width: 600px) { td input { width: 72px; } }
 .inline { flex-direction: row; align-items: center; gap: 8px; }
+textarea { font: inherit; padding: 10px 12px; border: 1px solid var(--outline); border-radius: 10px; background: var(--surface); color: var(--text); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0 12px; }
+.seg { display: flex; gap: 8px; }
+.seg button.on { background: var(--primary); color: #fff; }

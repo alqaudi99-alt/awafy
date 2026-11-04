@@ -12,10 +12,10 @@ import type { Order, OrderEvent } from '@/lib/types';
 
 type Item = { id: number; product_name: string; quantity: number; unit_price_omr: number };
 type Rx = { id: string; status: 'pending' | 'approved' | 'rejected'; review_note: string | null };
-type Detail = Order & { order_items: Item[]; order_events: OrderEvent[]; prescriptions: Rx[] };
+type Detail = Order & { order_items: Item[]; order_events: OrderEvent[]; prescriptions: Rx[]; order_pickup_codes: { code: string } | null };
 
 const SELECT =
-  'id, status, total_omr, subtotal_omr, delivery_fee_omr, requires_rx, delivery_address, cancel_reason, created_at, pharmacies(id, name_ar, name_en, delivery_fee_omr), order_items(id, product_name, quantity, unit_price_omr), order_events(id, status, note, created_at), prescriptions(id, status, review_note)';
+  'id, status, total_omr, subtotal_omr, delivery_fee_omr, requires_rx, fulfilment, delivery_address, cancel_reason, created_at, pharmacies(id, name_ar, name_en, delivery_fee_omr, address, phone), order_pickup_codes(code), order_items(id, product_name, quantity, unit_price_omr), order_events(id, status, note, created_at), prescriptions(id, status, review_note)';
 
 export default function OrderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -104,8 +104,21 @@ export default function OrderScreen() {
         <Badge text={statusLabels[lang][order.status]} tone={order.status === 'cancelled' ? 'danger' : 'info'} />
       </View>
       <AppText variant="small" style={{ color: Colors.textSecondary }}>
-        {pick(order.pharmacies?.name_ar, order.pharmacies?.name_en)} · {order.delivery_address}
+        {pick(order.pharmacies?.name_ar, order.pharmacies?.name_en)}
+        {order.fulfilment === 'delivery' ? ` · ${order.delivery_address ?? ''}` : ` · ${t('pickupAt')}`}
       </AppText>
+
+      {order.fulfilment === 'pickup' && order.order_pickup_codes && !['collected', 'cancelled'].includes(order.status) && (
+        <Card style={styles.codeCard}>
+          {order.status === 'ready_for_pickup' && <AppText variant="label">{t('readyForPickupNotice')}</AppText>}
+          <AppText variant="small">{t('pickupCode')}</AppText>
+          <AppText style={styles.code} accessibilityLabel={`${t('pickupCode')} ${order.order_pickup_codes.code.split('').join(' ')}`}>
+            {order.order_pickup_codes.code}
+          </AppText>
+          <AppText variant="small">{t('showCodeAtCounter')}</AppText>
+          {order.requires_rx && <AppText variant="small">{t('bringPrescription')}</AppText>}
+        </Card>
+      )}
 
       {order.status === 'awaiting_prescription' && <Notice tone="warning" text={t('rxNeeded')} />}
       {latestRx?.status === 'rejected' && latestRx.review_note && <Notice tone="warning" text={latestRx.review_note} />}
@@ -122,15 +135,17 @@ export default function OrderScreen() {
             <AppText>{money(item.quantity * Number(item.unit_price_omr))}</AppText>
           </View>
         ))}
-        <View style={styles.row}>
-          <AppText>{t('deliveryFee')}</AppText>
-          <AppText>{money(Number(order.delivery_fee_omr))}</AppText>
-        </View>
+        {order.fulfilment === 'delivery' && (
+          <View style={styles.row}>
+            <AppText>{t('deliveryFee')}</AppText>
+            <AppText>{money(Number(order.delivery_fee_omr))}</AppText>
+          </View>
+        )}
         <View style={styles.row}>
           <AppText variant="label">{t('total')}</AppText>
           <AppText variant="label">{money(Number(order.total_omr))}</AppText>
         </View>
-        <AppText variant="small">{t('cashOnDelivery')}</AppText>
+        <AppText variant="small">{order.fulfilment === 'pickup' ? t('payAtPharmacy') : t('cashOnDelivery')}</AppText>
       </Card>
 
       <AppText variant="heading">{t('timeline')}</AppText>
@@ -157,5 +172,7 @@ export default function OrderScreen() {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
   event: { flexDirection: 'row', gap: Spacing.md, paddingVertical: Spacing.xs },
+  codeCard: { backgroundColor: Colors.primaryContainer, alignItems: 'center', borderColor: Colors.primary, borderWidth: 2 },
+  code: { fontSize: 40, fontWeight: '800', letterSpacing: 8, color: Colors.brandDark, textAlign: 'center' },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.primary, marginTop: 7 },
 });

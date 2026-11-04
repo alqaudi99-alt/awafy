@@ -34,6 +34,8 @@ export type OrderStatus =
   | 'placed'
   | 'accepted'
   | 'preparing'
+  | 'ready_for_pickup'
+  | 'collected'
   | 'out_for_delivery'
   | 'delivered'
   | 'cancelled';
@@ -45,7 +47,8 @@ export type Order = {
   subtotal_omr: number;
   delivery_fee_omr: number;
   requires_rx: boolean;
-  delivery_address: string;
+  fulfilment: 'pickup' | 'delivery';
+  delivery_address: string | null;
   cancel_reason: string | null;
   created_at: string;
   pharmacies: Pharmacy | null;

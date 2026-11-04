@@ -1,7 +1,8 @@
 import type { Session } from '@supabase/supabase-js';
 import { useCallback, useEffect, useState } from 'react';
 
-import { NEXT_STEP, STATUS_AR, errorText, omr, supabase, type OrderStatus } from './supabase';
+import { ClinicalReview } from './ClinicalReview';
+import { nextStep, STATUS_AR, errorText, omr, supabase, type OrderStatus } from './supabase';
 
 type Role = 'customer' | 'pharmacy_staff' | 'driver' | 'admin' | 'clinical_reviewer';
 type Pharmacy = { id: string; name_ar: string; license_number: string; is_verified: boolean; phone: string | null };
@@ -64,7 +65,7 @@ function Workspace({ session }: { session: Session }) {
   const [role, setRole] = useState<Role | null>(null);
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [myIds, setMyIds] = useState<string[]>([]);
-  const [tab, setTab] = useState<'orders' | 'stock' | 'admin'>('orders');
+  const [tab, setTab] = useState<'orders' | 'stock' | 'admin' | 'clinical'>('orders');
 
   const loadMe = useCallback(async () => {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
@@ -82,6 +83,7 @@ function Workspace({ session }: { session: Session }) {
 
   if (!role) return <p className="center">جارٍ التحميل…</p>;
   const isAdmin = role === 'admin';
+  const isReviewer = role === 'clinical_reviewer';
   const mine = isAdmin ? pharmacies : pharmacies.filter((p) => myIds.includes(p.id));
 
   return (
@@ -90,14 +92,17 @@ function Workspace({ session }: { session: Session }) {
         <strong>عوافي — لوحة الصيدليات</strong>
         <span className="dev">نسخة تطوير — بيانات تجريبية</span>
         <nav>
-          <button className={tab === 'orders' ? 'on' : ''} onClick={() => setTab('orders')}>الطلبات</button>
-          <button className={tab === 'stock' ? 'on' : ''} onClick={() => setTab('stock')}>المخزون والأسعار</button>
+          {!isReviewer && <button className={tab === 'orders' ? 'on' : ''} onClick={() => setTab('orders')}>الطلبات</button>}
+          {!isReviewer && <button className={tab === 'stock' ? 'on' : ''} onClick={() => setTab('stock')}>المخزون والأسعار</button>}
+          {(isAdmin || isReviewer) && <button className={tab === 'clinical' || isReviewer ? 'on' : ''} onClick={() => setTab('clinical')}>المراجعة السريرية</button>}
           {isAdmin && <button className={tab === 'admin' ? 'on' : ''} onClick={() => setTab('admin')}>الصيدليات</button>}
           <button className="ghost" onClick={() => supabase.auth.signOut()}>خروج</button>
         </nav>
       </header>
       <main>
-        {role === 'customer' || mine.length === 0 ? (
+        {isReviewer || (isAdmin && tab === 'clinical') ? (
+          <ClinicalReview canApprove={isReviewer} />
+        ) : role === 'customer' || mine.length === 0 ? (
           <RegisterPharmacy onDone={loadMe} />
         ) : !isAdmin && mine.every((p) => !p.is_verified) ? (
           <p className="notice">صيدليتك قيد التحقق من الترخيص. ستظهر للعملاء بعد اعتمادها من إدارة عوافي.</p>
@@ -155,6 +160,7 @@ type OrderRow = {
   customer_id: string;
   pharmacy_id: string;
   driver_id: string | null;
+  fulfilment: 'pickup' | 'delivery';
   order_items: { id: number; product_name: string; quantity: number; unit_price_omr: number }[];
   prescriptions: { id: string; status: 'pending' | 'approved' | 'rejected'; storage_path: string; review_note: string | null }[];
 };
@@ -195,10 +201,10 @@ function Orders() {
   const load = useCallback(async () => {
     let q = supabase
       .from('orders')
-      .select('id, status, total_omr, delivery_address, requires_rx, created_at, customer_id, pharmacy_id, driver_id, order_items(id, product_name, quantity, unit_price_omr), prescriptions(id, status, storage_path, review_note)')
+      .select('id, status, total_omr, delivery_address, requires_rx, created_at, customer_id, pharmacy_id, driver_id, fulfilment, order_items(id, product_name, quantity, unit_price_omr), prescriptions(id, status, storage_path, review_note)')
       .order('created_at', { ascending: false })
       .limit(100);
-    if (filter === 'open') q = q.not('status', 'in', '(delivered,cancelled)');
+    if (filter === 'open') q = q.not('status', 'in', '(delivered,collected,cancelled)');
     const { data, error } = await q.returns<OrderRow[]>();
     if (error) return setMsg(errorText(error));
     setOrders(data ?? []);
@@ -251,7 +257,7 @@ function Orders() {
       {orders.length === 0 && <p>لا توجد طلبات.</p>}
       {orders.map((o) => {
         const rx = o.prescriptions.at(-1);
-        const next = NEXT_STEP[o.status];
+        const next = nextStep(o.status, o.fulfilment);
         return (
           <article key={o.id} className={`card status-${o.status}`}>
             <div className="row">
@@ -261,7 +267,7 @@ function Orders() {
             <p className="muted">
               {new Date(o.created_at).toLocaleString('ar-OM')} · {phones[o.customer_id] ?? ''}
             </p>
-            <p>{o.delivery_address}</p>
+            <p>{o.fulfilment === 'pickup' ? 'استلام من الصيدلية — الدفع عند الاستلام' : o.delivery_address}</p>
             <ul>
               {o.order_items.map((i) => (
                 <li key={i.id}>
@@ -270,7 +276,7 @@ function Orders() {
               ))}
             </ul>
             <p>
-              <strong>الإجمالي: {omr(o.total_omr)}</strong> (الدفع عند الاستلام)
+              <strong>الإجمالي: {omr(o.total_omr)}</strong> ({o.fulfilment === 'pickup' ? 'يُدفع في الصيدلية' : 'الدفع عند التوصيل'})
             </p>
             {o.requires_rx && (
               <div className="rx">
@@ -299,7 +305,7 @@ function Orders() {
                 )}
               </div>
             )}
-            {['accepted', 'preparing', 'out_for_delivery'].includes(o.status) && (
+            {o.fulfilment === 'delivery' && ['accepted', 'preparing', 'out_for_delivery'].includes(o.status) && (
               <label className="inline">
                 المندوب
                 <select
@@ -318,7 +324,16 @@ function Orders() {
               {next && (
                 <button onClick={() => act(() => supabase.rpc('set_order_status', { p_order_id: o.id, p_status: next.to }))}>{next.label}</button>
               )}
-              {!['delivered', 'cancelled'].includes(o.status) && (
+              {o.status === 'ready_for_pickup' && (
+                <button
+                  onClick={() => {
+                    const code = window.prompt('أدخل رمز الاستلام المكوّن من 6 أرقام الذي يعرضه العميل:');
+                    if (code) act(() => supabase.rpc('collect_order', { p_order_id: o.id, p_code: code.trim() }));
+                  }}>
+                  تسليم للعميل (رمز الاستلام)
+                </button>
+              )}
+              {!['delivered', 'collected', 'cancelled'].includes(o.status) && (
                 <button
                   className="danger ghost"
                   onClick={() => {

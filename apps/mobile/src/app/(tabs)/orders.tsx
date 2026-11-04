@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { DriverDeliveries } from '@/components/driver-deliveries';
+import { DELIVERY_ENABLED } from '@/lib/features';
 import { AppText, Badge, Button, Card, ErrorState, Loading, Screen } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
@@ -12,7 +13,8 @@ import type { Order } from '@/lib/types';
 
 export default function OrdersTab() {
   const { role } = useAuth();
-  return role === 'driver' ? <DriverDeliveries /> : <CustomerOrders />;
+  // Driver screens only exist once home delivery (Phase 2) is switched on.
+  return DELIVERY_ENABLED && role === 'driver' ? <DriverDeliveries /> : <CustomerOrders />;
 }
 
 function CustomerOrders() {
@@ -26,7 +28,7 @@ function CustomerOrders() {
     setError(false);
     supabase
       .from('orders')
-      .select('id, status, total_omr, subtotal_omr, delivery_fee_omr, requires_rx, delivery_address, cancel_reason, created_at, pharmacies(id, name_ar, name_en, delivery_fee_omr)')
+      .select('id, status, total_omr, subtotal_omr, delivery_fee_omr, requires_rx, fulfilment, delivery_address, cancel_reason, created_at, pharmacies(id, name_ar, name_en, delivery_fee_omr)')
       .order('created_at', { ascending: false })
       .returns<Order[]>()
       .then(({ data, error: err }) => (err ? setError(true) : setOrders(data ?? [])));
@@ -63,7 +65,7 @@ function CustomerOrders() {
               </AppText>
               <Badge
                 text={statusLabels[lang][order.status]}
-                tone={order.status === 'cancelled' ? 'danger' : order.status === 'awaiting_prescription' ? 'warning' : 'info'}
+                tone={order.status === 'cancelled' ? 'danger' : order.status === 'awaiting_prescription' || order.status === 'ready_for_pickup' ? 'warning' : 'info'}
               />
             </View>
             <AppText variant="small" style={{ color: Colors.textSecondary }}>

@@ -110,4 +110,8 @@ Include budget/subscription changes when any occur.
 | 2026-11-03 | Dev database `awafy-dev` created on Supabase free plan (USD 0), Mumbai region, fictional data only | Done |
 | 2026-11-03 | Project dashboard kept in Notion (connected) with a mirror in `docs/` | Done |
 | 2026-11-04 | Security review fixes (0004) approved by owner ("proceed") and applied to dev; 0005 trigger fix, 0006 stock + drivers; 20/20 access checks passed | Done |
+| 2026-11-04 | **Phase 1 = order in app, collect and pay at the pharmacy** (pickup code at counter). Delivery = Phase 2, switched off (`platform_settings.delivery_enabled`, `EXPO_PUBLIC_DELIVERY_ENABLED`) | Owner decision |
+| 2026-11-04 | Dosage, symptom and growth tools in v1; clinical reviewers = owner + colleague Ahmed (role `clinical_reviewer`) | Owner decision |
+| 2026-11-04 | Prototype calculator errors found (honey per-kg, ibuprofen daily max unit, ondansetron, rounding, "0 tablets"); corrected copy in `prototype/`, not published | Awaiting owner approval to publish |
+| 2026-11-04 | SMS login via Omantel (developer OTP API) — owner choice | Owner to register Omantel developer account |
 | 2026-11-04 | GitHub repo `alqaudi99-alt/awafy` (private) connected; full history pushed to `main`, `dev` branch created | Done |

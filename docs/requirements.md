@@ -3,11 +3,14 @@
 Status: DRAFT for owner sign-off (Milestone 2). Baseline: prototype at `awaffy.ethraamed.net/awafy/`
 (reviewed 3 Nov 2026) and developer spec at `dwa.ethraamed.net/index.md`.
 
-## 1. Goal of version 1
+## 1. Goal of version 1 (Phase 1 = order and collect) — owner decision 4 Nov 2026
 
-A customer in Muscat can order over-the-counter and prescription medicines from a licensed partner
-pharmacy, upload a prescription when needed, pay cash on delivery, and track the order to the door.
-The pharmacy receives, approves and fulfils orders from a web dashboard. One pharmacy in the pilot.
+A customer orders over-the-counter and prescription medicines in the app from a licensed partner
+pharmacy, uploads a prescription when needed, and **collects the order at the pharmacy, paying at the
+counter**. The customer shows a 6-digit pickup code; the pharmacist enters it to hand over.
+Home delivery is **Phase 2** (needs a separate permission); it is built but switched off.
+Dosage calculator, symptom helper and growth tools are **in version 1**, shown only after
+pharmacist approval. Clinical reviewers: the owner and his colleague Ahmed (licensed pharmacists).
 
 ## 2. Users and roles
 
@@ -35,9 +38,9 @@ The pharmacy receives, approves and fulfils orders from a web dashboard. One pha
 | Medication reminders | Yes | Local phone notifications; no health data leaves the phone |
 | Contact us | Yes | |
 | Arabic / English switch | Yes | Arabic default, right-to-left |
-| Dosage calculator (24 medicines) | **Owner decision** | Only pharmacist-approved records shown; 3 data errors found (see §7) |
-| Symptom helper (24 symptoms, body map) | **Owner decision** | Only approved records; red-flag advice always shown |
-| BMI and WHO infant growth charts | **Owner decision** | Same clinical review rule |
+| Dosage calculator (24 medicines) | Yes (decided 4 Nov) | Only pharmacist-approved records shown; 3 data errors found (see §7) |
+| Symptom helper (24 symptoms, body map) | Yes (decided 4 Nov) | Only approved records; red-flag advice always shown |
+| BMI and WHO infant growth charts | Yes (decided 4 Nov) | Same clinical review rule |
 | Chat assistant (rule-based) | Postpone to v2 | Duplicates dosage/symptom content; higher risk |
 
 ## 4. User stories (Must have)
