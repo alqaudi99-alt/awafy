@@ -9,15 +9,15 @@ import { useCart } from '@/lib/cart';
 import { DELIVERY_ENABLED } from '@/lib/features';
 import { useI18n } from '@/lib/i18n';
 import { friendlyError, supabase } from '@/lib/supabase';
-import type { Address } from '@/lib/types';
+import type { Address, Fulfilment } from '@/lib/types';
 
-type PharmacyInfo = { address: string | null; phone: string | null; delivery_fee_omr: number };
+type PharmacyInfo = { address: string | null; phone: string | null; delivery_fee_omr: number; urgent_delivery_fee_omr: number | null };
 
 export default function Checkout() {
   const { t, pick, money } = useI18n();
   const { session } = useAuth();
   const { cart, subtotal, hasRx, clear } = useCart();
-  const [mode, setMode] = useState<'pickup' | 'delivery'>('pickup');
+  const [mode, setMode] = useState<Fulfilment>('pickup');
   const [pharmacy, setPharmacy] = useState<PharmacyInfo | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export default function Checkout() {
     if (cart.pharmacyId) {
       supabase
         .from('pharmacies')
-        .select('address, phone, delivery_fee_omr')
+        .select('address, phone, delivery_fee_omr, urgent_delivery_fee_omr')
         .eq('id', cart.pharmacyId)
         .single()
         .then(({ data }) => setPharmacy(data));
@@ -51,7 +51,10 @@ export default function Checkout() {
     }
   }, [session, cart.pharmacyId]);
 
-  const fee = mode === 'delivery' ? Number(pharmacy?.delivery_fee_omr ?? 0) : 0;
+  const normalFee = Number(pharmacy?.delivery_fee_omr ?? 0);
+  const urgentFee = pharmacy?.urgent_delivery_fee_omr == null ? null : Number(pharmacy.urgent_delivery_fee_omr);
+  const isDelivery = mode !== 'pickup';
+  const fee = mode === 'delivery' ? normalFee : mode === 'urgent_delivery' ? (urgentFee ?? 0) : 0;
   const items = cart.lines.map((l) => ({ product_id: l.productId, quantity: l.quantity }));
 
   const placeOrder = async () => {
@@ -81,6 +84,7 @@ export default function Checkout() {
           p_pharmacy_id: cart.pharmacyId,
           p_address_id: addressId,
           p_items: items,
+          p_urgent: mode === 'urgent_delivery',
         });
         if (err) throw err;
         orderId = String(data);
@@ -97,9 +101,22 @@ export default function Checkout() {
   return (
     <Screen>
       {DELIVERY_ENABLED && (
-        <View style={styles.row}>
-          <Option active={mode === 'pickup'} onPress={() => setMode('pickup')} title={t('pickupAt')} />
-          <Option active={mode === 'delivery'} onPress={() => setMode('delivery')} title={t('deliveryAddress')} />
+        <View accessibilityRole="radiogroup" style={{ gap: Spacing.sm }}>
+          <AppText variant="heading">{t('howToReceive')}</AppText>
+          <Option active={mode === 'pickup'} onPress={() => setMode('pickup')} title={t('optPickup')} subtitle={t('freeLabel')} />
+          <Option active={mode === 'delivery'} onPress={() => setMode('delivery')} title={t('optDelivery')} subtitle={money(normalFee)} />
+          {urgentFee != null ? (
+            <Option
+              active={mode === 'urgent_delivery'}
+              onPress={() => setMode('urgent_delivery')}
+              title={t('optUrgent')}
+              subtitle={`${money(urgentFee)} · ${t('urgentNote')}`}
+            />
+          ) : pharmacy ? (
+            <AppText variant="small" style={{ color: Colors.textSecondary }}>
+              {t('urgentNotOffered')}
+            </AppText>
+          ) : null}
         </View>
       )}
 
@@ -134,7 +151,7 @@ export default function Checkout() {
 
       <Card>
         <Row label={t('subtotal')} value={money(subtotal)} />
-        {mode === 'delivery' && <Row label={t('deliveryFee')} value={money(fee)} />}
+        {isDelivery && <Row label={mode === 'urgent_delivery' ? `${t('deliveryFee')} (${t('urgentBadge')})` : t('deliveryFee')} value={money(fee)} />}
         <Row label={t('total')} value={money(subtotal + fee)} strong />
       </Card>
 
@@ -156,7 +173,7 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
 
 function Option({ active, onPress, title, subtitle }: { active: boolean; onPress: () => void; title: string; subtitle?: string }) {
   return (
-    <Pressable accessibilityRole="radio" accessibilityState={{ checked: active }} onPress={onPress} style={{ flex: 1 }}>
+    <Pressable accessibilityRole="radio" accessibilityState={{ checked: active }} onPress={onPress}>
       <Card style={active && { borderColor: Colors.primary, borderWidth: 2 }}>
         <AppText variant="label">{(active ? '● ' : '○ ') + title}</AppText>
         {subtitle && <AppText variant="small">{subtitle}</AppText>}
@@ -166,6 +183,5 @@ function Option({ active, onPress, title, subtitle }: { active: boolean; onPress
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: Spacing.sm },
   between: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.sm },
 });

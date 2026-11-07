@@ -110,8 +110,12 @@ Include budget/subscription changes when any occur.
 | 2026-11-03 | Dev database `awafy-dev` created on Supabase free plan (USD 0), Mumbai region, fictional data only | Done |
 | 2026-11-03 | Project dashboard kept in Notion (connected) with a mirror in `docs/` | Done |
 | 2026-11-04 | Security review fixes (0004) approved by owner ("proceed") and applied to dev; 0005 trigger fix, 0006 stock + drivers; 20/20 access checks passed | Done |
-| 2026-11-04 | **Phase 1 = order in app, collect and pay at the pharmacy** (pickup code at counter). Delivery = Phase 2, switched off (`platform_settings.delivery_enabled`, `EXPO_PUBLIC_DELIVERY_ENABLED`) | Owner decision |
+| 2026-11-04 | Phase 1 = order in app, collect and pay at the pharmacy; delivery = Phase 2 | Superseded 7 Nov |
 | 2026-11-04 | Dosage, symptom and growth tools in v1; clinical reviewers = owner + colleague Ahmed (role `clinical_reviewer`) | Owner decision |
-| 2026-11-04 | Prototype calculator errors found (honey per-kg, ibuprofen daily max unit, ondansetron, rounding, "0 tablets"); corrected copy in `prototype/`, not published | Awaiting owner approval to publish |
-| 2026-11-04 | SMS login via Omantel (developer OTP API) — owner choice | Owner to register Omantel developer account |
+| 2026-11-04 | Prototype calculator errors found (honey per-kg, ibuprofen daily max unit, ondansetron, rounding, "0 tablets"); corrected copy in `prototype/` | Owner approved publishing 7 Nov; owner uploads (this session cannot reach the file server) |
+| 2026-11-04 | SMS login via Omantel (developer OTP API) — owner choice | On hold until the Saeed / You Vers partnership is settled (7 Nov) |
 | 2026-11-04 | GitHub repo `alqaudi99-alt/awafy` (private) connected; full history pushed to `main`, `dev` branch created | Done |
+| 2026-11-07 | **Three ways to receive an order from launch:** collect at pharmacy, normal delivery, urgent delivery (pharmacy-set urgent fee). Migration 0009 `fulfilment_options` | Owner decision; migration awaiting confirmation in Supabase |
+| 2026-11-07 | Daily status (Sun–Thu 08:13 Muscat) and weekly report (Thu 14:42 Muscat) scheduled tasks, push notifications | Owner approved; running |
+| 2026-11-07 | Company contact number = owner's number +968 99022641 (call/WhatsApp in app) until a company line exists | Owner decision |
+| 2026-11-07 | Legal/licensing checks done by owner personally; pilot pharmacy later; NDA and partnership contract pending owner's edits; trademark filing after logo is final | Owner decision |

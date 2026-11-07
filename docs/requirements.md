@@ -3,12 +3,15 @@
 Status: DRAFT for owner sign-off (Milestone 2). Baseline: prototype at `awaffy.ethraamed.net/awafy/`
 (reviewed 3 Nov 2026) and developer spec at `dwa.ethraamed.net/index.md`.
 
-## 1. Goal of version 1 (Phase 1 = order and collect) — owner decision 4 Nov 2026
+## 1. Goal of version 1 — owner decision 7 Nov 2026 (replaces the 4 Nov "pickup first" plan)
 
 A customer orders over-the-counter and prescription medicines in the app from a licensed partner
-pharmacy, uploads a prescription when needed, and **collects the order at the pharmacy, paying at the
-counter**. The customer shows a 6-digit pickup code; the pharmacist enters it to hand over.
-Home delivery is **Phase 2** (needs a separate permission); it is built but switched off.
+pharmacy, uploads a prescription when needed, and chooses one of **three ways to receive it, from launch**:
+
+1. **Collect from the pharmacy** — free; the customer shows a 6-digit pickup code and pays at the counter.
+2. **Normal delivery** — the pharmacy's delivery fee; cash on delivery.
+3. **Urgent delivery** — prepared and delivered first at the pharmacy's higher urgent fee; cash on delivery.
+   A pharmacy offers it only once it sets an urgent fee. Admin can pause delivery or urgent delivery at any time.
 Dosage calculator, symptom helper and growth tools are **in version 1**, shown only after
 pharmacist approval. Clinical reviewers: the owner and his colleague Ahmed (licensed pharmacists).
 
@@ -29,9 +32,9 @@ pharmacist approval. Clinical reviewers: the owner and his colleague Ahmed (lice
 | Home, promotions | Yes | Promotions entered by pharmacies, approved by admin |
 | Browse catalogue, search, categories | Yes | Live data; 9 categories kept |
 | Product detail with price comparison across pharmacies | Yes | Real stock and prices per pharmacy |
-| Cart and checkout | Yes | Saved to account; cash on delivery |
+| Cart and checkout | Yes | Saved to account; collect (pay at pharmacy), normal or urgent delivery (cash on delivery) |
 | Prescription upload | Yes (new) | Required before an Rx item is dispatched |
-| Order tracking | Yes (new) | Status: placed → accepted → preparing → out for delivery → delivered / cancelled |
+| Order tracking | Yes (new) | Delivery: placed → accepted → preparing → out for delivery → delivered. Collect: … → ready for pickup → collected. Urgent orders shown first to the pharmacy |
 | Customer login | Yes | Oman mobile number + one-time code (SMS) |
 | Pharmacy partner login and registration | Yes | Registration creates an unverified pharmacy; admin verifies licence |
 | Pharmacy dashboard | Yes | Incoming orders, prescription review, stock and prices |

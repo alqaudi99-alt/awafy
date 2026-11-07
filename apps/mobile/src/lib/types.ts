@@ -47,7 +47,7 @@ export type Order = {
   subtotal_omr: number;
   delivery_fee_omr: number;
   requires_rx: boolean;
-  fulfilment: 'pickup' | 'delivery';
+  fulfilment: Fulfilment;
   delivery_address: string | null;
   cancel_reason: string | null;
   created_at: string;
@@ -68,3 +68,5 @@ export type CartLine = {
 };
 
 export type Cart = { pharmacyId: string | null; pharmacyNameAr: string; pharmacyNameEn: string | null; lines: CartLine[] };
+
+export type Fulfilment = 'pickup' | 'delivery' | 'urgent_delivery';

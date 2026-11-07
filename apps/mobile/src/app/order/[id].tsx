@@ -101,11 +101,14 @@ export default function OrderScreen() {
         <AppText variant="heading">
           {t('orderNumber')} #{order.id.slice(0, 8).toUpperCase()}
         </AppText>
-        <Badge text={statusLabels[lang][order.status]} tone={order.status === 'cancelled' ? 'danger' : 'info'} />
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {order.fulfilment === 'urgent_delivery' && <Badge text={t('urgentBadge')} tone="warning" />}
+          <Badge text={statusLabels[lang][order.status]} tone={order.status === 'cancelled' ? 'danger' : 'info'} />
+        </View>
       </View>
       <AppText variant="small" style={{ color: Colors.textSecondary }}>
         {pick(order.pharmacies?.name_ar, order.pharmacies?.name_en)}
-        {order.fulfilment === 'delivery' ? ` · ${order.delivery_address ?? ''}` : ` · ${t('pickupAt')}`}
+        {order.fulfilment === 'pickup' ? ` · ${t('pickupAt')}` : ` · ${order.delivery_address ?? ''}`}
       </AppText>
 
       {order.fulfilment === 'pickup' && order.order_pickup_codes && !['collected', 'cancelled'].includes(order.status) && (
@@ -135,7 +138,7 @@ export default function OrderScreen() {
             <AppText>{money(item.quantity * Number(item.unit_price_omr))}</AppText>
           </View>
         ))}
-        {order.fulfilment === 'delivery' && (
+        {order.fulfilment !== 'pickup' && (
           <View style={styles.row}>
             <AppText>{t('deliveryFee')}</AppText>
             <AppText>{money(Number(order.delivery_fee_omr))}</AppText>

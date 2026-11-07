@@ -1,21 +1,32 @@
--- Phase 1: customers order in the app and collect from the pharmacy, paying at the counter.
--- Home delivery stays built but is switched off until the delivery permission is granted (Phase 2).
+-- Three ways to receive an order, from launch (owner decision 7 Nov 2026):
+--   pickup           collect at the pharmacy with a 6-digit code, pay at the counter
+--   delivery         normal home delivery, cash on delivery
+--   urgent_delivery  priority home delivery at the pharmacy's urgent fee, cash on delivery
+-- Each kind can be switched off platform-wide by an admin; a pharmacy offers urgent delivery
+-- only when it has set an urgent fee.
 
 -- Platform switches (one row). Only admins change it.
 create table public.platform_settings (
   id boolean primary key default true check (id),
-  delivery_enabled boolean not null default false,
+  delivery_enabled boolean not null default true,
+  urgent_delivery_enabled boolean not null default true,
   updated_at timestamptz not null default now()
 );
 insert into public.platform_settings (id) values (true);
 alter table public.platform_settings enable row level security;
 create policy "settings are readable" on public.platform_settings for select to anon, authenticated using (true);
 
--- Orders: fulfilment type, address optional for pickup, pay at pharmacy.
+-- Pharmacies: optional urgent fee (null = no urgent delivery from this pharmacy).
+alter table public.pharmacies
+  add column urgent_delivery_fee_omr numeric(10, 3) check (urgent_delivery_fee_omr >= 0 and urgent_delivery_fee_omr <= 10);
+grant update (urgent_delivery_fee_omr) on public.pharmacies to authenticated;
+update public.pharmacies set urgent_delivery_fee_omr = delivery_fee_omr + 1.000 where license_number like 'DEMO-%';
+
+-- Orders: fulfilment type, address optional for pickup.
 alter table public.orders
-  add column fulfilment text not null default 'pickup' check (fulfilment in ('pickup', 'delivery')),
+  add column fulfilment text not null default 'delivery' check (fulfilment in ('pickup', 'delivery', 'urgent_delivery')),
   alter column delivery_address drop not null,
-  alter column payment_method set default 'pay_at_pharmacy';
+  alter column payment_method set default 'cash_on_delivery';
 alter table public.orders drop constraint orders_payment_method_check;
 alter table public.orders add constraint orders_payment_method_check
   check (payment_method in ('pay_at_pharmacy', 'cash_on_delivery'));
@@ -47,15 +58,25 @@ begin
     raise exception 'Cart must contain between 1 and 50 items';
   end if;
   if (select count(*) from public.orders where customer_id = p_uid
-        and status in ('awaiting_prescription', 'placed', 'accepted', 'preparing', 'ready_for_pickup')) >= 5 then
+        and status in ('awaiting_prescription', 'placed', 'accepted', 'preparing', 'ready_for_pickup', 'out_for_delivery')) >= 5 then
     raise exception 'You have too many open orders; please wait for one to complete';
   end if;
-  select delivery_fee_omr into v_fee from public.pharmacies where id = p_pharmacy_id and is_verified and is_active;
+  if p_fulfilment is null or p_fulfilment not in ('pickup', 'delivery', 'urgent_delivery') then
+    raise exception 'Choose pickup, delivery or urgent delivery';
+  end if;
+  select case when p_fulfilment = 'urgent_delivery' then urgent_delivery_fee_omr else delivery_fee_omr end
+    into v_fee from public.pharmacies where id = p_pharmacy_id and is_verified and is_active;
   if not found then raise exception 'Pharmacy is not available'; end if;
 
-  if p_fulfilment = 'delivery' then
+  if p_fulfilment in ('delivery', 'urgent_delivery') then
     if not (select delivery_enabled from public.platform_settings) then
-      raise exception 'Home delivery is not available yet; please choose pickup';
+      raise exception 'Home delivery is paused right now; please choose pickup';
+    end if;
+    if p_fulfilment = 'urgent_delivery' then
+      if not (select urgent_delivery_enabled from public.platform_settings) then
+        raise exception 'Urgent delivery is paused right now';
+      end if;
+      if v_fee is null then raise exception 'This pharmacy does not offer urgent delivery'; end if;
     end if;
     select details into v_address from public.addresses where id = p_address_id and user_id = p_uid;
     if not found then raise exception 'Delivery address not found'; end if;
@@ -102,14 +123,14 @@ begin
 
   if p_fulfilment = 'pickup' then
     insert into public.order_pickup_codes (order_id, code)
-    values (v_order, lpad((floor(random() * 1000000))::int::text, 6, '0'));
+    values (v_order, lpad(((('x' || encode(extensions.gen_random_bytes(4), 'hex'))::bit(32)::bigint) % 1000000)::text, 6, '0'));
   end if;
   insert into public.order_events (order_id, status, actor_id) values (v_order, v_status, p_uid);
   return v_order;
 end $$;
 revoke execute on function private.create_order from public, anon, authenticated;
 
--- Phase 1 entry point.
+-- Entry points: pickup, and home delivery (normal or urgent).
 create or replace function public.place_pickup_order(p_pharmacy_id uuid, p_items jsonb)
 returns uuid language plpgsql security definer set search_path = '' as $$
 begin
@@ -117,15 +138,17 @@ begin
   return private.create_order(auth.uid(), p_pharmacy_id, 'pickup', null, p_items);
 end $$;
 
--- Phase 2 entry point (kept; refuses while delivery is switched off).
-create or replace function public.place_order(p_pharmacy_id uuid, p_address_id uuid, p_items jsonb)
+drop function public.place_order(uuid, uuid, jsonb);
+create function public.place_order(p_pharmacy_id uuid, p_address_id uuid, p_items jsonb, p_urgent boolean default false)
 returns uuid language plpgsql security definer set search_path = '' as $$
 begin
   if auth.uid() is null then raise exception 'Login required'; end if;
-  return private.create_order(auth.uid(), p_pharmacy_id, 'delivery', p_address_id, p_items);
+  return private.create_order(auth.uid(), p_pharmacy_id,
+    case when coalesce(p_urgent, false) then 'urgent_delivery' else 'delivery' end, p_address_id, p_items);
 end $$;
 
 -- Status flow. Pickup: placed → accepted → preparing → ready_for_pickup → collected (via collect_order).
+-- Delivery and urgent delivery: placed → accepted → preparing → out_for_delivery → delivered.
 create or replace function public.set_order_status(p_order_id uuid, p_status public.order_status, p_note text default null)
 returns void language plpgsql security definer set search_path = '' as $$
 declare
@@ -144,15 +167,15 @@ begin
   staff_step := (o.status = 'placed' and p_status = 'accepted')
              or (o.status = 'accepted' and p_status = 'preparing')
              or (o.fulfilment = 'pickup' and o.status = 'preparing' and p_status = 'ready_for_pickup')
-             or (o.fulfilment = 'delivery' and o.status = 'preparing' and p_status = 'out_for_delivery')
+             or (o.fulfilment <> 'pickup' and o.status = 'preparing' and p_status = 'out_for_delivery')
              or p_status = 'cancelled';
 
   if o.customer_id = v_uid and not is_admin then
     allowed := p_status = 'cancelled' and o.status in ('awaiting_prescription', 'placed');
   elsif is_admin or private.is_staff_of(o.pharmacy_id) then
-    allowed := staff_step or (is_admin and o.fulfilment = 'delivery' and o.status = 'out_for_delivery' and p_status = 'delivered');
+    allowed := staff_step or (is_admin and o.fulfilment <> 'pickup' and o.status = 'out_for_delivery' and p_status = 'delivered');
   elsif o.driver_id = v_uid then
-    allowed := o.fulfilment = 'delivery' and o.status = 'out_for_delivery' and p_status = 'delivered';
+    allowed := o.fulfilment <> 'pickup' and o.status = 'out_for_delivery' and p_status = 'delivered';
   end if;
   if not allowed then raise exception 'This status change is not allowed'; end if;
 
@@ -178,8 +201,9 @@ begin
 end $$;
 
 -- Hand-over at the counter: the customer shows their 6-digit code; 5 wrong tries lock the order.
+-- Returns 'collected' or 'wrong_code' (no exception on a wrong code, so the failed-try counter is kept).
 create or replace function public.collect_order(p_order_id uuid, p_code text)
-returns void language plpgsql security definer set search_path = '' as $$
+returns text language plpgsql security definer set search_path = '' as $$
 declare v_uid uuid := auth.uid(); o public.orders%rowtype; c public.order_pickup_codes%rowtype;
 begin
   if v_uid is null then raise exception 'Login required'; end if;
@@ -195,19 +219,23 @@ begin
   if c.failed_attempts >= 5 then raise exception 'Too many wrong codes; ask the customer to contact support'; end if;
   if c.code <> trim(coalesce(p_code, '')) then
     update public.order_pickup_codes set failed_attempts = failed_attempts + 1 where order_id = o.id;
-    raise exception 'Wrong pickup code';
+    return 'wrong_code';
   end if;
   update public.orders set status = 'collected', collected_at = now(), updated_at = now() where id = o.id;
   insert into public.order_events (order_id, status, actor_id, note) values (o.id, 'collected', v_uid, 'Collected at pharmacy');
+  return 'collected';
 end $$;
 
--- Admin switch for Phase 2.
-create or replace function public.admin_set_delivery_enabled(p_enabled boolean)
+-- Admin switches (e.g. pause delivery during a driver shortage).
+create or replace function public.admin_set_delivery_enabled(p_enabled boolean, p_urgent_enabled boolean default null)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
   if not private.is_admin() then raise exception 'Not allowed'; end if;
-  update public.platform_settings set delivery_enabled = p_enabled, updated_at = now();
+  update public.platform_settings
+     set delivery_enabled = coalesce(p_enabled, delivery_enabled),
+         urgent_delivery_enabled = coalesce(p_urgent_enabled, urgent_delivery_enabled),
+         updated_at = now();
 end $$;
 
-revoke execute on function public.place_pickup_order, public.collect_order, public.admin_set_delivery_enabled from public, anon;
-grant execute on function public.place_pickup_order, public.collect_order, public.admin_set_delivery_enabled to authenticated;
+revoke execute on function public.place_pickup_order, public.place_order, public.collect_order, public.admin_set_delivery_enabled from public, anon;
+grant execute on function public.place_pickup_order, public.place_order, public.collect_order, public.admin_set_delivery_enabled to authenticated;

@@ -2,7 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ClinicalReview } from './ClinicalReview';
-import { nextStep, STATUS_AR, errorText, omr, supabase, type OrderStatus } from './supabase';
+import { nextStep, STATUS_AR, FULFILMENT_AR, errorText, omr, supabase, type Fulfilment, type OrderStatus } from './supabase';
 
 type Role = 'customer' | 'pharmacy_staff' | 'driver' | 'admin' | 'clinical_reviewer';
 type Pharmacy = { id: string; name_ar: string; license_number: string; is_verified: boolean; phone: string | null };
@@ -160,7 +160,7 @@ type OrderRow = {
   customer_id: string;
   pharmacy_id: string;
   driver_id: string | null;
-  fulfilment: 'pickup' | 'delivery';
+  fulfilment: Fulfilment;
   order_items: { id: number; product_name: string; quantity: number; unit_price_omr: number }[];
   prescriptions: { id: string; status: 'pending' | 'approved' | 'rejected'; storage_path: string; review_note: string | null }[];
 };
@@ -207,7 +207,8 @@ function Orders() {
     if (filter === 'open') q = q.not('status', 'in', '(delivered,collected,cancelled)');
     const { data, error } = await q.returns<OrderRow[]>();
     if (error) return setMsg(errorText(error));
-    setOrders(data ?? []);
+    // Urgent deliveries first, then newest.
+    setOrders([...(data ?? [])].sort((a, b) => Number(b.fulfilment === 'urgent_delivery') - Number(a.fulfilment === 'urgent_delivery')));
     const ids = [...new Set((data ?? []).map((o) => o.customer_id))];
     if (ids.length) {
       const { data: people } = await supabase.from('profiles').select('id, phone, full_name').in('id', ids);
@@ -262,12 +263,18 @@ function Orders() {
           <article key={o.id} className={`card status-${o.status}`}>
             <div className="row">
               <strong dir="ltr">#{o.id.slice(0, 8).toUpperCase()}</strong>
-              <span className="pill">{STATUS_AR[o.status]}</span>
+              <span>
+                {o.fulfilment === 'urgent_delivery' && <span className="pill urgent">مستعجل</span>}{' '}
+                <span className="pill">{STATUS_AR[o.status]}</span>
+              </span>
             </div>
             <p className="muted">
               {new Date(o.created_at).toLocaleString('ar-OM')} · {phones[o.customer_id] ?? ''}
             </p>
-            <p>{o.fulfilment === 'pickup' ? 'استلام من الصيدلية — الدفع عند الاستلام' : o.delivery_address}</p>
+            <p>
+              <strong>{FULFILMENT_AR[o.fulfilment]}</strong>
+              {o.fulfilment === 'pickup' ? ' — الدفع عند الاستلام' : ` — ${o.delivery_address}`}
+            </p>
             <ul>
               {o.order_items.map((i) => (
                 <li key={i.id}>
@@ -305,7 +312,7 @@ function Orders() {
                 )}
               </div>
             )}
-            {o.fulfilment === 'delivery' && ['accepted', 'preparing', 'out_for_delivery'].includes(o.status) && (
+            {o.fulfilment !== 'pickup' && ['accepted', 'preparing', 'out_for_delivery'].includes(o.status) && (
               <label className="inline">
                 المندوب
                 <select
@@ -328,7 +335,12 @@ function Orders() {
                 <button
                   onClick={() => {
                     const code = window.prompt('أدخل رمز الاستلام المكوّن من 6 أرقام الذي يعرضه العميل:');
-                    if (code) act(() => supabase.rpc('collect_order', { p_order_id: o.id, p_code: code.trim() }));
+                    if (code)
+                      act(async () => {
+                        const res = await supabase.rpc('collect_order', { p_order_id: o.id, p_code: code.trim() });
+                        if (!res.error && res.data === 'wrong_code') return { error: { message: 'رمز الاستلام غير صحيح. بعد 5 محاولات خاطئة يُقفل الطلب.' } };
+                        return res;
+                      });
                   }}>
                   تسليم للعميل (رمز الاستلام)
                 </button>

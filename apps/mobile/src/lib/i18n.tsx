@@ -4,7 +4,7 @@ import type { Lang, OrderStatus } from './types';
 
 const ar = {
   appName: 'عوافي',
-  tagline: 'اطلب أدويتك من التطبيق واستلمها جاهزة من الصيدلية',
+  tagline: 'اطلب أدويتك من الصيدلية: استلام، توصيل، أو توصيل مستعجل',
   navHome: 'الرئيسية',
   navBrowse: 'تصفح',
   navCart: 'السلة',
@@ -87,13 +87,24 @@ const ar = {
   callCustomer: 'اتصل بالعميل',
   markDelivered: 'تم التسليم',
   waitForPharmacy: 'بانتظار تجهيز الطلب في الصيدلية',
+  howToReceive: 'كيف تريد استلام طلبك؟',
+  optPickup: 'استلام من الصيدلية',
+  optDelivery: 'توصيل عادي',
+  optUrgent: 'توصيل مستعجل',
+  freeLabel: 'مجاناً',
+  urgentNote: 'أولوية في التجهيز والتوصيل. رسوم أعلى.',
+  urgentNotOffered: 'هذه الصيدلية لا تقدم التوصيل المستعجل حالياً',
+  urgentBadge: 'مستعجل',
+  contactUs: 'تواصل معنا',
+  callUs: 'اتصال',
+  whatsappUs: 'واتساب',
 };
 
 type Dict = typeof ar;
 
 const en: Dict = {
   appName: 'Awafy',
-  tagline: 'Order in the app, collect ready from the pharmacy',
+  tagline: 'Order from the pharmacy: collect, delivery or urgent delivery',
   navHome: 'Home',
   navBrowse: 'Browse',
   navCart: 'Cart',
@@ -176,6 +187,17 @@ const en: Dict = {
   callCustomer: 'Call customer',
   markDelivered: 'Mark delivered',
   waitForPharmacy: 'Waiting for the pharmacy to prepare the order',
+  howToReceive: 'How would you like to receive your order?',
+  optPickup: 'Collect from pharmacy',
+  optDelivery: 'Normal delivery',
+  optUrgent: 'Urgent delivery',
+  freeLabel: 'Free',
+  urgentNote: 'Prepared and delivered first. Higher fee.',
+  urgentNotOffered: 'This pharmacy does not offer urgent delivery right now',
+  urgentBadge: 'Urgent',
+  contactUs: 'Contact us',
+  callUs: 'Call',
+  whatsappUs: 'WhatsApp',
 };
 
 export const statusLabels: Record<Lang, Record<OrderStatus, string>> = {

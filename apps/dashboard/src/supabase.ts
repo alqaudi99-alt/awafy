@@ -31,7 +31,15 @@ export const STATUS_AR: Record<OrderStatus, string> = {
 };
 
 /** The next step pharmacy staff can take (enforced again in the database). Hand-over uses the pickup code. */
-export function nextStep(status: OrderStatus, fulfilment: 'pickup' | 'delivery'): { to: OrderStatus; label: string } | null {
+export type Fulfilment = 'pickup' | 'delivery' | 'urgent_delivery';
+
+export const FULFILMENT_AR: Record<Fulfilment, string> = {
+  pickup: 'استلام من الصيدلية',
+  delivery: 'توصيل عادي',
+  urgent_delivery: 'توصيل مستعجل',
+};
+
+export function nextStep(status: OrderStatus, fulfilment: Fulfilment): { to: OrderStatus; label: string } | null {
   if (status === 'placed') return { to: 'accepted', label: 'قبول الطلب' };
   if (status === 'accepted') return { to: 'preparing', label: 'بدء التجهيز' };
   if (status === 'preparing') return fulfilment === 'pickup'
