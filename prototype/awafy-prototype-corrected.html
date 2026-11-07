@@ -463,6 +463,11 @@
   .gchip{font-size:12.5px; font-weight:700; padding:4px 12px; border-radius:100px; white-space:nowrap;}
   .gbig{font-size:44px; font-weight:800; line-height:1.1; margin:4px 0;}
   .gmeta{font-size:13px; color:var(--ink-soft); margin:2px 0 8px;}
+  .ghist{width:100%; border-collapse:collapse; font-size:13px; margin-top:6px;}
+  .ghist th,.ghist td{padding:7px 4px; border-bottom:1px solid var(--line); text-align:start;}
+  .ghist th{color:var(--ink-soft); font-weight:700; font-size:12px;}
+  .ghist button{border:none; background:none; color:var(--alert); font-size:18px; cursor:pointer; padding:2px 8px; min-width:36px; min-height:36px;}
+  .glinkbtn{border:none; background:none; color:var(--alert); font-family:'Tajawal',sans-serif; font-size:13px; font-weight:700; cursor:pointer; padding:8px 0;}
 </style>
 </head>
 <body class="on-home">
@@ -858,7 +863,10 @@
           <input type="text" inputmode="decimal" id="gcW" placeholder="7.5" oninput="calcChildGrowth()">
           <label style="font-size:12px; color:var(--ink-soft);" data-i18n="gLength"></label>
           <input type="text" inputmode="decimal" id="gcL" placeholder="66" oninput="calcChildGrowth()">
+          <button class="primary" type="button" onclick="addGrowthPoint()" data-i18n="gSaveBtn">حفظ القياس في سجل النمو</button>
+          <div id="gcSaveMsg" role="status" aria-live="polite"></div>
           <div id="gcResult"></div>
+          <div id="gcHistory"></div>
           <div class="alertbox" data-i18n="gChildNote"></div>
           <p class="disclaimer" data-i18n="gSource"></p>
         </div>
@@ -1336,6 +1344,23 @@ const UI = {
     gLegend:"الخط الأخضر: المتوسط (0). المنطقة المظللة: من -2 إلى +2 (المعدل الطبيعي). النقطة الحمراء: طفلك.",
     gChildNote:"نتائج استرشادية بمعايير منظمة الصحة العالمية. المهم اتجاه النمو عبر الزمن وليس قياساً واحداً. للخدّج استخدم العمر المصحَّح، وقِس الطول والطفل مستلقياً. راجع طبيب الأطفال لتفسير النتيجة.",
     gSource:"المصدر: معايير نمو الطفل لمنظمة الصحة العالمية (2006).",
+    gSaveBtn:"حفظ القياس في سجل النمو",
+    gSaved:"تم حفظ القياس. أضف قياساً جديداً في كل زيارة لترى منحنى نمو طفلك.",
+    gSaveNeed:"أدخل العمر ومعه الوزن أو الطول لحفظ القياس.",
+    gReplaced:"تم تحديث قياس العمر نفسه.",
+    gHistTitle:"سجل نمو طفلك",
+    gHistEmpty:"لا توجد قياسات محفوظة بعد.",
+    gHistAge:"العمر (شهر)",
+    gHistW:"الوزن",
+    gHistL:"الطول",
+    gDelete:"حذف القياس",
+    gClearAll:"مسح السجل بالكامل",
+    gClearConfirm:"هل تريد مسح جميع قياسات النمو المحفوظة؟ لا يمكن التراجع.",
+    gPrivacy:"يُحفظ السجل على هذا الجهاز فقط ولا يُرسل إلى أي جهة.",
+    gTrendLatest:"آخر قياس",
+    gTrendDrop:"انخفض منحنى الوزن بشكل ملحوظ منذ القياس السابق (عبر خطاً رئيسياً أو أكثر). ناقش ذلك مع طبيب الأطفال.",
+    gTrendLenDrop:"انخفض منحنى الطول بشكل ملحوظ منذ القياس السابق. تأكد من القياس وناقشه مع طبيب الأطفال.",
+    gLegendHist:"الخط الأخضر: المتوسط. المنطقة المظللة: المعدل الطبيعي (-2 إلى +2). النقاط الزرقاء: قياسات طفلك المحفوظة. النقطة الحمراء: القياس الحالي.",
     homeHello:"أهلاً بك", homeSub:"كيف نقدر نساعدك اليوم؟",
     homeSymptomT:"عندي أعراض", homeSymptomS:"حدّد مكان الألم ونقترح لك الخيارات",
     homeBrowseT:"أبحث عن دواء", homeBrowseS:"قارن الأسعار بين الصيدليات القريبة",
@@ -1477,6 +1502,23 @@ contactMsgLabel:"Message Content", contactMsgPh:"Write details of your inquiry o
     gLegend:"Green line: median (0). Shaded area: -2 to +2 (normal range). Red dot: your child.",
     gChildNote:"Guidance based on WHO standards. The trend over time matters more than a single measurement. For premature babies use corrected age, and measure length lying down. Ask your pediatrician to interpret the result.",
     gSource:"Source: WHO Child Growth Standards (2006).",
+    gSaveBtn:"Save to growth record",
+    gSaved:"Measurement saved. Add a new one at each check-up to see your child's growth curve.",
+    gSaveNeed:"Enter the age plus weight or length to save a measurement.",
+    gReplaced:"Updated the measurement for the same age.",
+    gHistTitle:"Your child's growth record",
+    gHistEmpty:"No saved measurements yet.",
+    gHistAge:"Age (months)",
+    gHistW:"Weight",
+    gHistL:"Length",
+    gDelete:"Delete measurement",
+    gClearAll:"Clear the whole record",
+    gClearConfirm:"Delete all saved growth measurements? This cannot be undone.",
+    gPrivacy:"The record is kept on this device only and is not sent anywhere.",
+    gTrendLatest:"Latest measurement",
+    gTrendDrop:"The weight curve has dropped noticeably since the previous measurement (crossed one or more main lines). Discuss this with your paediatrician.",
+    gTrendLenDrop:"The length curve has dropped noticeably since the previous measurement. Re-check the measurement and discuss it with your paediatrician.",
+    gLegendHist:"Green line: average. Shaded area: normal range (-2 to +2). Blue dots: your child's saved measurements. Red dot: the current entry.",
     homeHello:"Welcome", homeSub:"How can we help you today?",
     homeSymptomT:"I have symptoms", homeSymptomS:"Pick where it hurts and see your options",
     homeBrowseT:"Find a medicine", homeBrowseS:"Compare prices at nearby pharmacies",
@@ -2947,11 +2989,13 @@ function niceTicks(min,max,n){
   for(let v=Math.ceil(min/step)*step; v<=max+1e-9; v+=step) out.push(+v.toFixed(6));
   return out;
 }
-function growthChart(rows,xTicks,xLabel,yLabel,pt){
+// pts: [{x, y, cur}] — saved measurements are joined by a line; the current entry is red.
+function growthChart(rows,xTicks,xLabel,yLabel,pts){
   const W=340,H=240,pl=40,pr=30,pt0=16,pb=36, zs=[-3,-2,0,2,3];
   const cv=zs.map(z=>rows.map(r=>[r[0],valAtZ(z,r[1],r[2],r[3])]));
   const xmin=rows[0][0], xmax=rows[rows.length-1][0];
-  let ymin=Math.min(Math.min(...cv[0].map(p=>p[1])),pt.y), ymax=Math.max(Math.max(...cv[4].map(p=>p[1])),pt.y);
+  const ys=pts.map(p=>p.y);
+  let ymin=Math.min(Math.min(...cv[0].map(p=>p[1])),...ys), ymax=Math.max(Math.max(...cv[4].map(p=>p[1])),...ys);
   const pad=(ymax-ymin)*0.04; ymin-=pad; ymax+=pad;
   const sx=x=>pl+(x-xmin)/(xmax-xmin)*(W-pl-pr), sy=y=>H-pb-(y-ymin)/(ymax-ymin)*(H-pt0-pb);
   const P=p=>sx(p[0]).toFixed(1)+' '+sy(p[1]).toFixed(1);
@@ -2967,47 +3011,140 @@ function growthChart(rows,xTicks,xLabel,yLabel,pt){
   const lbl=['-3','-2','0','+2','+3'];
   cv.forEach((c,i)=>{ const l=c[c.length-1]; s+=`<text x="${W-pr+4}" y="${(sy(l[1])+3).toFixed(1)}" font-size="9" fill="var(--ink-soft)">${lbl[i]}</text>`; });
   s+=`<text x="${W/2}" y="${H-4}" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">${xLabel}</text><text x="${pl}" y="10" font-size="10.5" fill="var(--ink-soft)">${yLabel}</text>`;
-  s+=`<circle cx="${sx(pt.x).toFixed(1)}" cy="${sy(pt.y).toFixed(1)}" r="5.5" fill="var(--alert)" stroke="#fff" stroke-width="1.5"/></svg>`;
+  const saved=pts.filter(p=>!p.cur).sort((a,b)=>a.x-b.x);
+  if(saved.length>1) s+=`<path d="M${saved.map(p=>sx(p.x).toFixed(1)+' '+sy(p.y).toFixed(1)).join(' L')}" fill="none" stroke="#1E5FA8" stroke-width="2"/>`;
+  saved.forEach(p=>{ s+=`<circle cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="4" fill="#1E5FA8" stroke="#fff" stroke-width="1.2"/>`; });
+  pts.filter(p=>p.cur).forEach(p=>{ s+=`<circle cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="5.5" fill="var(--alert)" stroke="#fff" stroke-width="1.5"/>`; });
+  s+=`</svg>`;
   return s;
 }
-function growthCard(titleKey,z,interp,rows,xTicks,xLabel,yLabel,pt,flag){
+function growthCard(titleKey,z,interp,rows,xTicks,xLabel,yLabel,pts,flag,extra){
   return `<div class="gres">
     <div class="gh"><b>${t(titleKey)}</b>${gChip(interp[0],interp[1])}</div>
     <p class="gmeta" dir="ltr" style="text-align:start">z = <b>${z.toFixed(2)}</b> &nbsp;|&nbsp; ${t('gPct')} ≈ <b>${fmtPct(z)}</b></p>
     ${flag?`<div class="alertbox" style="margin:6px 0">${t('gUnusual')}</div>`:''}
-    ${growthChart(rows,xTicks,xLabel,yLabel,pt)}
+    ${extra||''}
+    ${growthChart(rows,xTicks,xLabel,yLabel,pts)}
   </div>`;
+}
+// ---- Growth record (0-24 months): several measurements over time, kept on this device only.
+const GROWTH_KEY='awafy_growth_v1';
+function loadGrowth(){
+  try{ const r=JSON.parse(localStorage.getItem(GROWTH_KEY)||'null'); if(r&&Array.isArray(r.points)) return r; }catch(e){}
+  return {sex:null, points:[]};
+}
+function saveGrowth(rec){ try{ localStorage.setItem(GROWTH_KEY, JSON.stringify(rec)); }catch(e){} }
+function zWfa(D,age,w){ const r=lmsAt(D.wfa,age); return r?zWho(w,r[0],r[1],r[2],true):null; }
+function zLfa(D,age,len){ const r=lmsAt(D.lfa,age); return r?zWho(len,r[0],r[1],r[2],false):null; }
+function zWfl(D,len,w){ const r=lmsAt(D.wfl,len); return r?zWho(w,r[0],r[1],r[2],true):null; }
+function growthInputs(){
+  const age=gnum('gcAge'), w=gnum('gcW'), len=gnum('gcL');
+  return {age, w, len, ageOk:!isNaN(age)&&age>=0&&age<=24, wOk:w>0, lOk:len>0};
+}
+function addGrowthPoint(){
+  const msg=document.getElementById('gcSaveMsg');
+  const g=growthInputs();
+  if(!g.ageOk||!(g.wOk||g.lOk)){ msg.innerHTML=`<p class="psub">${t('gSaveNeed')}</p>`; return; }
+  if((g.wOk&&(g.w<0.5||g.w>25))||(g.lOk&&(g.len<35||g.len>120))){ msg.innerHTML=`<div class="alertbox">${t('gUnusual')}</div>`; return; }
+  const rec=loadGrowth();
+  rec.sex=document.getElementById('gcSex').value;
+  const age=Math.round(g.age*10)/10;
+  const p={age, w:g.wOk?Math.round(g.w*1000)/1000:null, len:g.lOk?Math.round(g.len*10)/10:null, at:Date.now()};
+  const i=rec.points.findIndex(x=>x.age===age);
+  if(i>=0) rec.points[i]=p; else rec.points.push(p);
+  rec.points.sort((a,b)=>a.age-b.age);
+  saveGrowth(rec);
+  ['gcAge','gcW','gcL'].forEach(id=>{ document.getElementById(id).value=''; });
+  msg.innerHTML=`<p class="psub">${t(i>=0?'gReplaced':'gSaved')}</p>`;
+  calcChildGrowth();
+}
+function deleteGrowthPoint(age){
+  const rec=loadGrowth(); rec.points=rec.points.filter(p=>p.age!==age); saveGrowth(rec); calcChildGrowth();
+}
+function clearGrowth(){
+  if(!confirm(t('gClearConfirm'))) return;
+  saveGrowth({sex:null, points:[]}); document.getElementById('gcSaveMsg').innerHTML=''; calcChildGrowth();
+}
+function renderGrowthHistory(rec,D){
+  const box=document.getElementById('gcHistory');
+  if(!rec.points.length){ box.innerHTML=`<p class="gmeta">${t('gPrivacy')}</p>`; return; }
+  const pctOf=z=>z==null?'—':fmtPct(z);
+  const rows=rec.points.map(p=>{
+    const zw=p.w!=null?zWfa(D,p.age,p.w):null, zl=p.len!=null?zLfa(D,p.age,p.len):null;
+    return `<tr><td dir="ltr">${p.age}</td>
+      <td>${p.w!=null?`<span dir="ltr">${p.w}</span> ${t('gKg')}`:'—'}<br><span class="gmeta">${t('gPct')} ${pctOf(zw)}</span></td>
+      <td>${p.len!=null?`<span dir="ltr">${p.len}</span> ${lang==='ar'?'سم':'cm'}`:'—'}<br><span class="gmeta">${t('gPct')} ${pctOf(zl)}</span></td>
+      <td><button type="button" aria-label="${t('gDelete')} ${p.age}" title="${t('gDelete')}" onclick="deleteGrowthPoint(${p.age})">&times;</button></td></tr>`;
+  }).join('');
+  box.innerHTML=`<div class="gres"><div class="gh"><b>${t('gHistTitle')}</b><span class="gmeta">${rec.points.length}</span></div>
+    <table class="ghist"><thead><tr><th>${t('gHistAge')}</th><th>${t('gHistW')}</th><th>${t('gHistL')}</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="gmeta">${t('gPrivacy')}</p>
+    <button type="button" class="glinkbtn" onclick="clearGrowth()">${t('gClearAll')}</button></div>`;
 }
 function calcChildGrowth(){
   const out=document.getElementById('gcResult');
-  const sx=document.getElementById('gcSex').value, D=GROWTH[sx];
-  const age=gnum('gcAge'), w=gnum('gcW'), len=gnum('gcL');
+  const sexSel=document.getElementById('gcSex');
+  const rec=loadGrowth();
+  if(rec.sex&&rec.points.length&&!calcChildGrowth._synced){ sexSel.value=rec.sex; }
+  calcChildGrowth._synced=true;
+  const sx=sexSel.value, D=GROWTH[sx];
+  if(rec.points.length&&rec.sex!==sx){ rec.sex=sx; saveGrowth(rec); }
+  const g=growthInputs();
   let html='';
-  const ageOk=!isNaN(age)&&age>=0&&age<=24, wOk=w>0, lOk=len>0;
-  if(!isNaN(age)&&!ageOk){ out.innerHTML=`<div class="alertbox">${t('gAgeErr')}</div>`; return; }
-  if((wOk&&(w<0.5||w>25))||(lOk&&(len<35||len>120))){ out.innerHTML=`<div class="alertbox">${t('gUnusual')}</div>`; return; }
-  const ageTicks=[0,6,12,18,24];
-  if(ageOk&&wOk){
-    const [L,M,S]=lmsAt(D.wfa,age), z=zWho(w,L,M,S,true);
-    const it= z<-3?[t('gWfaSev'),'bad'] : z<-2?[t('gWfaLow'),'warn'] : z<=2?[t('gNormal'),'ok'] : [t('gWfaHigh'),'warn'];
-    html+=growthCard('gWfa',z,it,D.wfa,ageTicks,t('gAxisAge'),t('gAxisKg'),{x:age,y:w},z<-6||z>5);
-  }
-  if(ageOk&&lOk){
-    const [L,M,S]=lmsAt(D.lfa,age), z=zWho(len,L,M,S,false);
-    const it= z<-3?[t('gLfaSev'),'bad'] : z<-2?[t('gLfaLow'),'warn'] : z<=2?[t('gNormal'),'ok'] : z<=3?[t('gLfaTall'),'warn'] : [t('gLfaVTall'),'warn'];
-    html+=growthCard('gLfa',z,it,D.lfa,ageTicks,t('gAxisAge'),t('gAxisCm'),{x:age,y:len},z<-6||z>6);
-  }
-  if(wOk&&lOk){
-    const r=lmsAt(D.wfl,len);
-    if(!r){ html+=`<p class="psub">${t('gOutLen')}</p>`; }
-    else {
-      const z=zWho(w,r[0],r[1],r[2],true);
-      const it= z<-3?[t('gWflSev'),'bad'] : z<-2?[t('gWflLow'),'warn'] : z<=1?[t('gNormal'),'ok'] : z<=2?[t('gWflRisk'),'warn'] : z<=3?[t('gWflOver'),'warn'] : [t('gWflObese'),'bad'];
-      html+=growthCard('gWfl',z,it,D.wfl,[50,60,70,80,90,100,110],t('gAxisLen'),t('gAxisKg'),{x:len,y:w},z<-5||z>5);
+  if(!isNaN(g.age)&&!g.ageOk){ out.innerHTML=`<div class="alertbox">${t('gAgeErr')}</div>`; renderGrowthHistory(rec,D); return; }
+  if((g.wOk&&(g.w<0.5||g.w>25))||(g.lOk&&(g.len<35||g.len>120))){ out.innerHTML=`<div class="alertbox">${t('gUnusual')}</div>`; renderGrowthHistory(rec,D); return; }
+  const ageTicks=[0,3,6,9,12,15,18,21,24];
+  const saved=rec.points;
+  // The measurement each card interprets: the current entry if complete, otherwise the latest saved one.
+  const cur={age:g.ageOk?g.age:null, w:g.wOk?g.w:null, len:g.lOk?g.len:null};
+  const lastWith=k=>{ for(let i=saved.length-1;i>=0;i--) if(saved[i][k]!=null) return saved[i]; return null; };
+  const prevWith=(k,ref)=>{ const l=saved.filter(p=>p[k]!=null&&p.age<ref); return l.length?l[l.length-1]:null; };
+  const latestNote=`<p class="gmeta">${t('gTrendLatest')}: <b dir="ltr">${'{A}'}</b> ${t('gAxisAge')}</p>`;
+
+  // Weight-for-age
+  {
+    const useCur=cur.age!=null&&cur.w!=null, ref=useCur?{age:cur.age,w:cur.w}:lastWith('w');
+    if(ref){
+      const z=zWfa(D,ref.age,ref.w);
+      const it= z<-3?[t('gWfaSev'),'bad'] : z<-2?[t('gWfaLow'),'warn'] : z<=2?[t('gNormal'),'ok'] : [t('gWfaHigh'),'warn'];
+      const prev=prevWith('w',ref.age); let extra=useCur?'':latestNote.replace('{A}',ref.age);
+      if(prev){ const zp=zWfa(D,prev.age,prev.w); if(zp!=null&&zp-z>=0.67) extra+=`<div class="alertbox" style="margin:6px 0">${t('gTrendDrop')}</div>`; }
+      const pts=saved.filter(p=>p.w!=null).map(p=>({x:p.age,y:p.w}));
+      if(useCur) pts.push({x:cur.age,y:cur.w,cur:true});
+      html+=growthCard('gWfa',z,it,D.wfa,ageTicks,t('gAxisAge'),t('gAxisKg'),pts,z<-6||z>5,extra);
     }
   }
-  if(!html) html=`<p class="psub">${t('gEnter')}</p>`; else html+=`<p class="gmeta">${t('gLegend')}</p>`;
+  // Length-for-age
+  {
+    const useCur=cur.age!=null&&cur.len!=null, ref=useCur?{age:cur.age,len:cur.len}:lastWith('len');
+    if(ref){
+      const z=zLfa(D,ref.age,ref.len);
+      const it= z<-3?[t('gLfaSev'),'bad'] : z<-2?[t('gLfaLow'),'warn'] : z<=2?[t('gNormal'),'ok'] : z<=3?[t('gLfaTall'),'warn'] : [t('gLfaVTall'),'warn'];
+      const prev=prevWith('len',ref.age); let extra=useCur?'':latestNote.replace('{A}',ref.age);
+      if(prev){ const zp=zLfa(D,prev.age,prev.len); if(zp!=null&&zp-z>=0.67) extra+=`<div class="alertbox" style="margin:6px 0">${t('gTrendLenDrop')}</div>`; }
+      const pts=saved.filter(p=>p.len!=null).map(p=>({x:p.age,y:p.len}));
+      if(useCur) pts.push({x:cur.age,y:cur.len,cur:true});
+      html+=growthCard('gLfa',z,it,D.lfa,ageTicks,t('gAxisAge'),t('gAxisCm'),pts,z<-6||z>6,extra);
+    }
+  }
+  // Weight-for-length (needs both on the same measurement)
+  {
+    const both=saved.filter(p=>p.w!=null&&p.len!=null);
+    const useCur=cur.w!=null&&cur.len!=null, ref=useCur?{w:cur.w,len:cur.len}:(both.length?both[both.length-1]:null);
+    if(ref){
+      const z=zWfl(D,ref.len,ref.w);
+      if(z==null){ html+=`<p class="psub">${t('gOutLen')}</p>`; }
+      else {
+        const it= z<-3?[t('gWflSev'),'bad'] : z<-2?[t('gWflLow'),'warn'] : z<=1?[t('gNormal'),'ok'] : z<=2?[t('gWflRisk'),'warn'] : z<=3?[t('gWflOver'),'warn'] : [t('gWflObese'),'bad'];
+        const pts=both.filter(p=>p.len>=45&&p.len<=110).map(p=>({x:p.len,y:p.w}));
+        if(useCur) pts.push({x:cur.len,y:cur.w,cur:true});
+        html+=growthCard('gWfl',z,it,D.wfl,[50,60,70,80,90,100,110],t('gAxisLen'),t('gAxisKg'),pts,z<-5||z>5,useCur?'':latestNote.replace('{A}',ref.age));
+      }
+    }
+  }
+  if(!html) html=`<p class="psub">${t('gEnter')}</p>`; else html+=`<p class="gmeta">${t(saved.length?'gLegendHist':'gLegend')}</p>`;
   out.innerHTML=html;
+  renderGrowthHistory(rec,D);
 }
 
 loadUserState();
