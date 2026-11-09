@@ -18,3 +18,7 @@ normal delivery, urgent delivery. Same rolled-back approach. Last run: 9 Nov 202
 limit, family record privacy (owner only, guests blocked), dose from latest weight (12 kg → 120–180 mg,
 5–7.5 ml for 120 mg/5 ml) and stale-weight flag, clinic directory (verified only, admin-only approval).
 Last run: 9 Nov 2026, 21/21 passed.
+
+`restricted_rx_test.sql` (migration 0012): original stamped prescription medicines are pickup only, can be
+prepared without an uploaded copy, cannot be handed over until a pharmacist records the original was checked;
+ordinary prescription orders still wait for an approved upload. Last run: 9 Nov 2026, 11/11 passed.

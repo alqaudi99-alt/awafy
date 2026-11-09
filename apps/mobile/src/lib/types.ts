@@ -10,6 +10,7 @@ export type Product = {
   usage_ar: string | null;
   usage_en: string | null;
   requires_rx: boolean;
+  restricted: boolean;
 };
 
 export type Pharmacy = {
@@ -47,6 +48,7 @@ export type Order = {
   subtotal_omr: number;
   delivery_fee_omr: number;
   requires_rx: boolean;
+  has_restricted: boolean;
   fulfilment: Fulfilment;
   delivery_address: string | null;
   cancel_reason: string | null;
@@ -65,6 +67,8 @@ export type CartLine = {
   priceOmr: number;
   quantity: number;
   requiresRx: boolean;
+  /** Needs the original stamped prescription at the pharmacy; pickup only. */
+  restricted?: boolean;
 };
 
 export type Cart = { pharmacyId: string | null; pharmacyNameAr: string; pharmacyNameEn: string | null; lines: CartLine[] };

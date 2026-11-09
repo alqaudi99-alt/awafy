@@ -15,7 +15,7 @@ type Rx = { id: string; status: 'pending' | 'approved' | 'rejected'; review_note
 type Detail = Order & { order_items: Item[]; order_events: OrderEvent[]; prescriptions: Rx[]; order_pickup_codes: { code: string } | null };
 
 const SELECT =
-  'id, status, total_omr, subtotal_omr, delivery_fee_omr, requires_rx, fulfilment, delivery_address, cancel_reason, created_at, pharmacies(id, name_ar, name_en, delivery_fee_omr, address, phone), order_pickup_codes(code), order_items(id, product_name, quantity, unit_price_omr), order_events(id, status, note, created_at), prescriptions(id, status, review_note)';
+  'id, status, total_omr, subtotal_omr, delivery_fee_omr, requires_rx, has_restricted, fulfilment, delivery_address, cancel_reason, created_at, pharmacies(id, name_ar, name_en, delivery_fee_omr, address, phone), order_pickup_codes(code), order_items(id, product_name, quantity, unit_price_omr), order_events(id, status, note, created_at), prescriptions(id, status, review_note)';
 
 export default function OrderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -92,7 +92,7 @@ export default function OrderScreen() {
   if (!order) return <Loading />;
 
   const latestRx = order.prescriptions.at(-1);
-  const canUpload = order.requires_rx && ['awaiting_prescription', 'placed'].includes(order.status) && latestRx?.status !== 'pending' && latestRx?.status !== 'approved';
+  const canUpload = order.requires_rx && !order.has_restricted && ['awaiting_prescription', 'placed'].includes(order.status) && latestRx?.status !== 'pending' && latestRx?.status !== 'approved';
   const canCancel = ['awaiting_prescription', 'placed'].includes(order.status);
 
   return (
@@ -119,7 +119,11 @@ export default function OrderScreen() {
             {order.order_pickup_codes.code}
           </AppText>
           <AppText variant="small">{t('showCodeAtCounter')}</AppText>
-          {order.requires_rx && <AppText variant="small">{t('bringPrescription')}</AppText>}
+          {order.has_restricted ? (
+            <AppText variant="label" style={{ color: Colors.error }}>{t('bringOriginalRx')}</AppText>
+          ) : (
+            order.requires_rx && <AppText variant="small">{t('bringPrescription')}</AppText>
+          )}
         </Card>
       )}
 

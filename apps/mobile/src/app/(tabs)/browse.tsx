@@ -56,7 +56,7 @@ export default function Browse() {
                   <AppText variant="small" style={{ color: Colors.textSecondary }}>
                     {best ? `${t('fromPrice')} ${money(Number(best.price_omr))}` : t('outOfStock')}
                   </AppText>
-                  {product.requires_rx && <Badge text={t('rxRequired')} tone="warning" />}
+                  {product.restricted ? <Badge text={t('restrictedBadge')} tone="danger" /> : product.requires_rx && <Badge text={t('rxRequired')} tone="warning" />}
                 </View>
               </Card>
             </Pressable>

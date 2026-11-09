@@ -23,6 +23,8 @@ type CartValue = {
   count: number;
   subtotal: number;
   hasRx: boolean;
+  /** Cart holds a medicine that needs the original stamped prescription: pickup only. */
+  hasRestricted: boolean;
   add: (pharmacy: Pharmacy, line: Omit<CartLine, 'quantity'>, options?: { replace?: boolean }) => AddResult;
   setQuantity: (productId: number, quantity: number) => void;
   remove: (productId: number) => void;
@@ -74,7 +76,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const count = cart.lines.reduce((n, l) => n + l.quantity, 0);
     const subtotal = cart.lines.reduce((sum, l) => sum + l.quantity * l.priceOmr, 0);
     const hasRx = cart.lines.some((l) => l.requiresRx);
-    return { cart, count, subtotal, hasRx, add, setQuantity, remove, clear };
+    const hasRestricted = cart.lines.some((l) => l.restricted);
+    return { cart, count, subtotal, hasRx, hasRestricted, add, setQuantity, remove, clear };
   }, [cart, add, setQuantity, remove, clear]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

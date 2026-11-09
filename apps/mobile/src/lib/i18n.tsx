@@ -163,6 +163,10 @@ const ar = {
   telemedicine: 'طب عن بُعد',
   clinic: 'عيادة',
   unusualValue: 'قيمة غير معتادة، تأكد من الرقم.',
+  restrictedBadge: 'وصفة أصلية مختومة',
+  restrictedNote: 'هذا الدواء يُصرف بوصفة أصلية مختومة من الطبيب. يمكنك طلبه لتجهيزه، ويكون الاستلام من الصيدلية فقط مع تسليم الوصفة الأصلية للصيدلي.',
+  restrictedCheckout: 'سلتك فيها دواء يحتاج وصفة أصلية مختومة، لذلك الاستلام من الصيدلية فقط. سلّم الوصفة الأصلية للصيدلي عند الاستلام.',
+  bringOriginalRx: 'أحضر الوصفة الأصلية المختومة وسلّمها للصيدلي، لن يُسلَّم الطلب بدونها.',
 };
 
 type Dict = typeof ar;
@@ -328,6 +332,10 @@ const en: Dict = {
   telemedicine: 'Telemedicine',
   clinic: 'Clinic',
   unusualValue: 'Unusual value, please check the number.',
+  restrictedBadge: 'Original stamped prescription',
+  restrictedNote: "This medicine needs the doctor's original stamped prescription. You can order it so it is prepared; collection from the pharmacy only, handing the original prescription to the pharmacist.",
+  restrictedCheckout: 'Your cart has a medicine that needs the original stamped prescription, so this order is collection only. Hand the original to the pharmacist when you collect.',
+  bringOriginalRx: 'Bring the original stamped prescription and hand it to the pharmacist. The order cannot be handed over without it.',
 };
 
 export const statusLabels: Record<Lang, Record<OrderStatus, string>> = {

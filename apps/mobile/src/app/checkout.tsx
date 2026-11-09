@@ -16,7 +16,7 @@ type PharmacyInfo = { address: string | null; phone: string | null; delivery_fee
 export default function Checkout() {
   const { t, pick, money } = useI18n();
   const { session, isRegistered } = useAuth();
-  const { cart, subtotal, hasRx, clear } = useCart();
+  const { cart, subtotal, hasRx, hasRestricted, clear } = useCart();
   const [mode, setMode] = useState<Fulfilment>('pickup');
   const [pharmacy, setPharmacy] = useState<PharmacyInfo | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -63,8 +63,10 @@ export default function Checkout() {
 
   const normalFee = Number(pharmacy?.delivery_fee_omr ?? 0);
   const urgentFee = pharmacy?.urgent_delivery_fee_omr == null ? null : Number(pharmacy.urgent_delivery_fee_omr);
-  const isDelivery = mode !== 'pickup';
-  const fee = mode === 'delivery' ? normalFee : mode === 'urgent_delivery' ? (urgentFee ?? 0) : 0;
+  // Medicines needing the original stamped prescription can only be collected (the database enforces it too).
+  const effectiveMode: Fulfilment = hasRestricted ? 'pickup' : mode;
+  const isDelivery = effectiveMode !== 'pickup';
+  const fee = effectiveMode === 'delivery' ? normalFee : effectiveMode === 'urgent_delivery' ? (urgentFee ?? 0) : 0;
   const items = cart.lines.map((l) => ({ product_id: l.productId, quantity: l.quantity }));
 
   const placeOrder = async () => {
@@ -88,7 +90,7 @@ export default function Checkout() {
       }
       let orderId: string;
       // Prices, stock and totals are checked by the database; the app only sends product ids and quantities.
-      if (mode === 'pickup') {
+      if (effectiveMode === 'pickup') {
         const { data, error: err } = await supabase.rpc('place_pickup_order', { p_pharmacy_id: cart.pharmacyId, p_items: items });
         if (err) throw err;
         orderId = String(data);
@@ -124,7 +126,8 @@ export default function Checkout() {
 
   return (
     <Screen>
-      {DELIVERY_ENABLED && (
+      {hasRestricted && <Notice tone="warning" text={t('restrictedCheckout')} />}
+      {DELIVERY_ENABLED && !hasRestricted && (
         <View accessibilityRole="radiogroup" style={{ gap: Spacing.sm }}>
           <AppText variant="heading">{t('howToReceive')}</AppText>
           <Option active={mode === 'pickup'} onPress={() => setMode('pickup')} title={t('optPickup')} subtitle={t('freeLabel')} />
@@ -164,7 +167,7 @@ export default function Checkout() {
         </Card>
       )}
 
-      {mode === 'pickup' ? (
+      {effectiveMode === 'pickup' ? (
         <Card>
           <AppText variant="heading">{t('pickupAt')}</AppText>
           <AppText variant="label">{pick(cart.pharmacyNameAr, cart.pharmacyNameEn)}</AppText>
@@ -191,11 +194,11 @@ export default function Checkout() {
       )}
 
       <AppText variant="heading">{t('paymentMethod')}</AppText>
-      <Option active onPress={() => undefined} title={mode === 'pickup' ? t('payAtPharmacy') : t('cashOnDelivery')} />
+      <Option active onPress={() => undefined} title={effectiveMode === 'pickup' ? t('payAtPharmacy') : t('cashOnDelivery')} />
 
       <Card>
         <Row label={t('subtotal')} value={money(subtotal)} />
-        {isDelivery && <Row label={mode === 'urgent_delivery' ? `${t('deliveryFee')} (${t('urgentBadge')})` : t('deliveryFee')} value={money(fee)} />}
+        {isDelivery && <Row label={effectiveMode === 'urgent_delivery' ? `${t('deliveryFee')} (${t('urgentBadge')})` : t('deliveryFee')} value={money(fee)} />}
         <Row label={t('total')} value={money(subtotal + fee)} strong />
       </Card>
 

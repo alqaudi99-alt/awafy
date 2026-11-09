@@ -65,7 +65,7 @@ function Workspace({ session }: { session: Session }) {
   const [role, setRole] = useState<Role | null>(null);
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [myIds, setMyIds] = useState<string[]>([]);
-  const [tab, setTab] = useState<'orders' | 'stock' | 'admin' | 'clinical' | 'clinics'>('orders');
+  const [tab, setTab] = useState<'orders' | 'stock' | 'admin' | 'clinical' | 'clinics' | 'products'>('orders');
 
   const loadMe = useCallback(async () => {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
@@ -97,6 +97,7 @@ function Workspace({ session }: { session: Session }) {
           {(isAdmin || isReviewer) && <button className={tab === 'clinical' || isReviewer ? 'on' : ''} onClick={() => setTab('clinical')}>المراجعة السريرية</button>}
           {isAdmin && <button className={tab === 'admin' ? 'on' : ''} onClick={() => setTab('admin')}>الصيدليات</button>}
           {isAdmin && <button className={tab === 'clinics' ? 'on' : ''} onClick={() => setTab('clinics')}>العيادات والطب المرئي</button>}
+          {isAdmin && <button className={tab === 'products' ? 'on' : ''} onClick={() => setTab('products')}>المنتجات والوصفات</button>}
           <button className="ghost" onClick={() => supabase.auth.signOut()}>خروج</button>
         </nav>
       </header>
@@ -113,6 +114,8 @@ function Workspace({ session }: { session: Session }) {
           <Stock pharmacies={mine} />
         ) : tab === 'clinics' ? (
           <AdminClinics />
+        ) : tab === 'products' ? (
+          <AdminProducts />
         ) : (
           <AdminPharmacies pharmacies={pharmacies} onChange={loadMe} />
         )}
@@ -161,6 +164,8 @@ type OrderRow = {
   contact_name: string | null;
   contact_phone: string | null;
   is_guest: boolean;
+  has_restricted: boolean;
+  original_rx_checked_at: string | null;
   requires_rx: boolean;
   created_at: string;
   customer_id: string;
@@ -207,7 +212,7 @@ function Orders() {
   const load = useCallback(async () => {
     let q = supabase
       .from('orders')
-      .select('id, status, total_omr, delivery_address, contact_name, contact_phone, is_guest, requires_rx, created_at, customer_id, pharmacy_id, driver_id, fulfilment, order_items(id, product_name, quantity, unit_price_omr), prescriptions(id, status, storage_path, review_note)')
+      .select('id, status, total_omr, delivery_address, contact_name, contact_phone, is_guest, has_restricted, original_rx_checked_at, requires_rx, created_at, customer_id, pharmacy_id, driver_id, fulfilment, order_items(id, product_name, quantity, unit_price_omr), prescriptions(id, status, storage_path, review_note)')
       .order('created_at', { ascending: false })
       .limit(100);
     if (filter === 'open') q = q.not('status', 'in', '(delivered,collected,cancelled)');
@@ -271,6 +276,7 @@ function Orders() {
               <strong dir="ltr">#{o.id.slice(0, 8).toUpperCase()}</strong>
               <span>
                 {o.fulfilment === 'urgent_delivery' && <span className="pill urgent">مستعجل</span>}{' '}
+                {o.has_restricted && <span className="pill urgent">وصفة أصلية مختومة</span>}{' '}
                 <span className="pill">{STATUS_AR[o.status]}</span>
               </span>
             </div>
@@ -343,7 +349,16 @@ function Orders() {
               {next && (
                 <button onClick={() => act(() => supabase.rpc('set_order_status', { p_order_id: o.id, p_status: next.to }))}>{next.label}</button>
               )}
-              {o.status === 'ready_for_pickup' && (
+              {o.status === 'ready_for_pickup' && o.has_restricted && !o.original_rx_checked_at && (
+                <button
+                  onClick={() =>
+                    window.confirm('هل استلمت الوصفة الأصلية المختومة من الطبيب وتحققت من اسم المريض والدواء والختم؟') &&
+                    act(() => supabase.rpc('confirm_original_rx', { p_order_id: o.id }))
+                  }>
+                  استلمت الوصفة الأصلية وتحققت منها
+                </button>
+              )}
+              {o.status === 'ready_for_pickup' && (!o.has_restricted || o.original_rx_checked_at) && (
                 <button
                   onClick={() => {
                     const code = window.prompt('أدخل رمز الاستلام المكوّن من 6 أرقام الذي يعرضه العميل:');
@@ -579,6 +594,57 @@ function AdminClinics() {
         <label>رابط الحجز (https://)<input value={form.booking_url} onChange={set('booking_url')} dir="ltr" type="url" /></label>
         <button type="submit">إضافة</button>
       </form>
+    </section>
+  );
+}
+
+type ProductRow = { id: number; name_ar: string; requires_rx: boolean; restricted: boolean };
+
+function AdminProducts() {
+  const [rows, setRows] = useState<ProductRow[]>([]);
+  const [msg, setMsg] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('products').select('id, name_ar, requires_rx, restricted').order('name_ar');
+    setRows((data as ProductRow[] | null) ?? []);
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+  const setKind = async (p: ProductRow, kind: 'none' | 'rx' | 'restricted') => {
+    const { error } = await supabase.rpc('admin_set_product_rx', {
+      p_product_id: p.id,
+      p_requires_rx: kind !== 'none',
+      p_restricted: kind === 'restricted',
+    });
+    setMsg(error ? errorText(error) : `تم تحديث ${p.name_ar}`);
+    load();
+  };
+  return (
+    <section>
+      <h2>المنتجات والوصفات</h2>
+      <p className="muted">
+        «وصفة أصلية مختومة»: يظهر الدواء للمريض ويمكن طلبه وتجهيزه، والاستلام من الصيدلية فقط، ولا يُسلَّم قبل أن يؤكد الصيدلي استلام الوصفة الأصلية.
+      </p>
+      {msg && <p className="notice">{msg}</p>}
+      <table>
+        <thead><tr><th>المنتج</th><th>نوع الصرف</th></tr></thead>
+        <tbody>
+          {rows.map((p) => (
+            <tr key={p.id}>
+              <td>{p.name_ar}</td>
+              <td>
+                <select
+                  value={p.restricted ? 'restricted' : p.requires_rx ? 'rx' : 'none'}
+                  onChange={(e) => setKind(p, e.target.value as 'none' | 'rx' | 'restricted')}>
+                  <option value="none">بدون وصفة</option>
+                  <option value="rx">وصفة (صورة تُرفع في التطبيق)</option>
+                  <option value="restricted">وصفة أصلية مختومة (استلام فقط)</option>
+                </select>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }

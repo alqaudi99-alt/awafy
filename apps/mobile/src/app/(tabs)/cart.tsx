@@ -31,7 +31,7 @@ export default function CartScreen() {
       {cart.lines.map((line) => (
         <Card key={line.productId}>
           <AppText variant="label">{pick(line.nameAr, line.nameEn)}</AppText>
-          {line.requiresRx && <Badge text={t('rxRequired')} tone="warning" />}
+          {line.restricted ? <Badge text={t('restrictedBadge')} tone="danger" /> : line.requiresRx && <Badge text={t('rxRequired')} tone="warning" />}
           <View style={styles.row}>
             <View style={styles.stepper}>
               <Stepper label="−" onPress={() => setQuantity(line.productId, line.quantity - 1)} />

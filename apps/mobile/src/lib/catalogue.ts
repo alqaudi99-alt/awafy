@@ -4,7 +4,7 @@ import { supabase } from './supabase';
 import type { Category, ProductWithOffers } from './types';
 
 const PRODUCT_SELECT =
-  'id, category_id, name_ar, name_en, usage_ar, usage_en, requires_rx, pharmacy_stock(pharmacy_id, product_id, price_omr, quantity, pharmacies(id, name_ar, name_en, delivery_fee_omr))';
+  'id, category_id, name_ar, name_en, usage_ar, usage_en, requires_rx, restricted, pharmacy_stock(pharmacy_id, product_id, price_omr, quantity, pharmacies(id, name_ar, name_en, delivery_fee_omr))';
 
 type State<T> = { data: T | null; loading: boolean; error: boolean; reload: () => void };
 

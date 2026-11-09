@@ -41,6 +41,7 @@ export default function ProductScreen() {
       nameEn: p.name_en,
       priceOmr: Number(offer.price_omr),
       requiresRx: p.requires_rx,
+      restricted: p.restricted,
     };
     if (add(offer.pharmacies, line) === 'different_pharmacy') {
       const ok = await confirm(t('replaceCartTitle'), t('replaceCartBody'), t('replace'), t('cancel'));
@@ -54,7 +55,14 @@ export default function ProductScreen() {
     <Screen>
       <Stack.Screen options={{ title: pick(p.name_ar, p.name_en) }} />
       <AppText variant="title">{pick(p.name_ar, p.name_en)}</AppText>
-      {p.requires_rx && <Badge text={t('rxRequired')} tone="warning" />}
+      {p.restricted ? (
+        <>
+          <Badge text={t('restrictedBadge')} tone="danger" />
+          <Notice tone="warning" text={t('restrictedNote')} />
+        </>
+      ) : (
+        p.requires_rx && <Badge text={t('rxRequired')} tone="warning" />
+      )}
 
       {(p.usage_ar || p.usage_en) && (
         <Card>
