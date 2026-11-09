@@ -115,7 +115,7 @@ Include budget/subscription changes when any occur.
 | 2026-11-04 | Prototype calculator errors found (honey per-kg, ibuprofen daily max unit, ondansetron, rounding, "0 tablets"); corrected copy in `prototype/` | Owner approved publishing 7 Nov; owner uploads (this session cannot reach the file server) |
 | 2026-11-04 | SMS login via Omantel (developer OTP API) — owner choice | On hold until the Saeed / You Vers partnership is settled (7 Nov) |
 | 2026-11-04 | GitHub repo `alqaudi99-alt/awafy` (private) connected; full history pushed to `main`, `dev` branch created | Done |
-| 2026-11-07 | **Three ways to receive an order from launch:** collect at pharmacy, normal delivery, urgent delivery (pharmacy-set urgent fee). Migration 0009 `fulfilment_options` | Owner decision; migration awaiting confirmation in Supabase |
+| 2026-11-07 | **Three ways to receive an order from launch:** collect at pharmacy, normal delivery, urgent delivery (pharmacy-set urgent fee). Migration 0009 `fulfilment_options` | Owner decision; applied to dev 9 Nov (owner approved), 22/22 checks passed |
 | 2026-11-07 | Daily status (Sun–Thu 08:13 Muscat) and weekly report (Thu 14:42 Muscat) scheduled tasks, push notifications | Owner approved; running |
 | 2026-11-07 | Company contact number = owner's number +968 99022641 (call/WhatsApp in app) until a company line exists | Owner decision |
 | 2026-11-07 | Legal/licensing checks done by owner personally; pilot pharmacy later; NDA and partnership contract pending owner's edits; trademark filing after logo is final | Owner decision |

@@ -9,3 +9,7 @@ Expected: anon sees 21 products and 0 unapproved dosage rows; customer B sees 0 
 self-promotion, direct order writes, self-verification and clinical edits are all blocked;
 staff cannot accept an Rx order until the prescription is approved; only the driver marks delivered;
 the driver cannot see prescriptions.
+
+`fulfilment_options_test.sql` (migration 0009) checks the three ways to receive an order: pickup,
+normal delivery, urgent delivery. Same rolled-back approach. Last run: 9 Nov 2026, 22/22 passed
+(fees, pickup code privacy, wrong-code counter, status flows, driver hand-over, pause switches, anonymous blocked).
