@@ -15,6 +15,8 @@ type Dose = {
   max_single_mg: number | null;
   max_daily_mg: number | null;
   max_daily_mg_per_kg: number | null;
+  min_age_months: number | null;
+  max_age_months: number | null;
   frequency_ar: string | null;
   warnings_ar: string | null;
   requires_rx: boolean;
@@ -47,8 +49,14 @@ export function ClinicalReview({ canApprove }: { canApprove: boolean }) {
   const [doses, setDoses] = useState<Dose[]>([]);
   const [symptoms, setSymptoms] = useState<Symptom[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
+  const [products, setProducts] = useState<{ id: number; name_ar: string }[]>([]);
+  const [links, setLinks] = useState<{ product_id: number; dosage_id: number }[]>([]);
 
   const load = useCallback(async () => {
+    const pr = await supabase.from('products').select('id, name_ar').order('name_ar');
+    const ln = await supabase.from('product_dosage').select('product_id, dosage_id');
+    setProducts(pr.data ?? []);
+    setLinks(ln.data ?? []);
     const d = await supabase.from('dosage_reference').select('*').order('id').returns<Dose[]>();
     const s = await supabase.from('symptom_reference').select('*').order('id').returns<Symptom[]>();
     if (d.error || s.error) return setMsg(errorText(d.error ?? s.error));
@@ -66,6 +74,24 @@ export function ClinicalReview({ canApprove }: { canApprove: boolean }) {
     setMsg(null);
     const { error } = await supabase.from(table).update(patch).eq('id', id);
     setMsg(error ? errorText(error) : 'تم الحفظ');
+    load();
+  };
+
+  // Which products this dosage record applies to (used to work out doses from a family member's weight).
+  const saveLinks = async (dosageId: number, productIds: number[]) => {
+    setMsg(null);
+    const current = links.filter((l) => l.dosage_id === dosageId).map((l) => l.product_id);
+    const toAdd = productIds.filter((p) => !current.includes(p));
+    const toRemove = current.filter((p) => !productIds.includes(p));
+    if (toAdd.length) {
+      const { error } = await supabase.from('product_dosage').insert(toAdd.map((product_id) => ({ product_id, dosage_id: dosageId })));
+      if (error) return setMsg(errorText(error));
+    }
+    if (toRemove.length) {
+      const { error } = await supabase.from('product_dosage').delete().eq('dosage_id', dosageId).in('product_id', toRemove);
+      if (error) return setMsg(errorText(error));
+    }
+    setMsg('تم ربط المنتجات');
     load();
   };
 
@@ -99,7 +125,17 @@ export function ClinicalReview({ canApprove }: { canApprove: boolean }) {
       {kind === 'dosage'
         ? doses
             .filter((d) => filter === 'all' || d.review_status === filter)
-            .map((d) => <DoseCard key={d.id} d={d} canApprove={canApprove} onSave={(p) => save('dosage_reference', d.id, p)} />)
+            .map((d) => (
+                <DoseCard
+                  key={d.id}
+                  d={d}
+                  canApprove={canApprove}
+                  onSave={(p) => save('dosage_reference', d.id, p)}
+                  products={products}
+                  linked={links.filter((l) => l.dosage_id === d.id).map((l) => l.product_id)}
+                  onLink={(ids) => saveLinks(d.id, ids)}
+                />
+              ))
         : symptoms
             .filter((s) => filter === 'all' || s.review_status === filter)
             .map((s) => <SymptomCard key={s.id} s={s} canApprove={canApprove} onSave={(p) => save('symptom_reference', s.id, p)} />)}
@@ -109,7 +145,22 @@ export function ClinicalReview({ canApprove }: { canApprove: boolean }) {
 
 const num = (v: string) => (v.trim() === '' ? null : Number(v));
 
-function DoseCard({ d, canApprove, onSave }: { d: Dose; canApprove: boolean; onSave: (p: Record<string, unknown>) => void }) {
+function DoseCard({
+  d,
+  canApprove,
+  onSave,
+  products,
+  linked,
+  onLink,
+}: {
+  d: Dose;
+  canApprove: boolean;
+  onSave: (p: Record<string, unknown>) => void;
+  products: { id: number; name_ar: string }[];
+  linked: number[];
+  onLink: (ids: number[]) => void;
+}) {
+  const [linkIds, setLinkIds] = useState<number[]>(linked);
   const [f, setF] = useState({
     dose_text: d.dose_text ?? '',
     weight_based: d.weight_based,
@@ -118,6 +169,8 @@ function DoseCard({ d, canApprove, onSave }: { d: Dose; canApprove: boolean; onS
     max_single_mg: d.max_single_mg?.toString() ?? '',
     max_daily_mg: d.max_daily_mg?.toString() ?? '',
     max_daily_mg_per_kg: d.max_daily_mg_per_kg?.toString() ?? '',
+    min_age_months: d.min_age_months?.toString() ?? '',
+    max_age_months: d.max_age_months?.toString() ?? '',
     frequency_ar: d.frequency_ar ?? '',
     warnings_ar: d.warnings_ar ?? '',
     review_note: d.review_note ?? '',
@@ -132,6 +185,8 @@ function DoseCard({ d, canApprove, onSave }: { d: Dose; canApprove: boolean; onS
     max_single_mg: num(f.max_single_mg),
     max_daily_mg: num(f.max_daily_mg),
     max_daily_mg_per_kg: num(f.max_daily_mg_per_kg),
+    min_age_months: num(f.min_age_months),
+    max_age_months: num(f.max_age_months),
     frequency_ar: f.frequency_ar,
     warnings_ar: f.warnings_ar,
     review_note: f.review_note,
@@ -157,8 +212,23 @@ function DoseCard({ d, canApprove, onSave }: { d: Dose; canApprove: boolean; onS
         <label>أقصى جرعة واحدة (ملغم)<input dir="ltr" inputMode="decimal" value={f.max_single_mg} onChange={set('max_single_mg')} /></label>
         <label>أقصى يومي (ملغم)<input dir="ltr" inputMode="decimal" value={f.max_daily_mg} onChange={set('max_daily_mg')} /></label>
         <label>أقصى يومي (ملغم/كغم)<input dir="ltr" inputMode="decimal" value={f.max_daily_mg_per_kg} onChange={set('max_daily_mg_per_kg')} /></label>
+        <label>من عمر (بالأشهر)<input dir="ltr" inputMode="numeric" value={f.min_age_months} onChange={set('min_age_months')} /></label>
+        <label>إلى عمر أقل من (بالأشهر)<input dir="ltr" inputMode="numeric" value={f.max_age_months} onChange={set('max_age_months')} /></label>
         <label>التكرار<input value={f.frequency_ar} onChange={set('frequency_ar')} /></label>
       </div>
+      <label>
+        المنتجات التي تنطبق عليها هذه الجرعة (لحساب الجرعة من وزن فرد العائلة)
+        <select
+          multiple
+          size={Math.min(6, Math.max(3, products.length))}
+          value={linkIds.map(String)}
+          onChange={(e) => setLinkIds(Array.from(e.target.selectedOptions).map((o) => Number(o.value)))}>
+          {products.map((p) => (
+            <option key={p.id} value={p.id}>{p.name_ar}</option>
+          ))}
+        </select>
+      </label>
+      <button className="ghost" onClick={() => onLink(linkIds)}>حفظ ربط المنتجات</button>
       <label>التحذيرات<textarea rows={2} value={f.warnings_ar} onChange={set('warnings_ar')} /></label>
       <label>ملاحظة المراجعة<input value={f.review_note} onChange={set('review_note')} /></label>
       <div className="row actions">

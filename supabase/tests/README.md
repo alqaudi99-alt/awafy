@@ -13,3 +13,8 @@ the driver cannot see prescriptions.
 `fulfilment_options_test.sql` (migration 0009) checks the three ways to receive an order: pickup,
 normal delivery, urgent delivery. Same rolled-back approach. Last run: 9 Nov 2026, 22/22 passed
 (fees, pickup code privacy, wrong-code counter, status flows, driver hand-over, pause switches, anonymous blocked).
+
+`guest_family_clinics_test.sql` (migrations 0010–0011): guest ordering with contact phone and a 2-open-order
+limit, family record privacy (owner only, guests blocked), dose from latest weight (12 kg → 120–180 mg,
+5–7.5 ml for 120 mg/5 ml) and stale-weight flag, clinic directory (verified only, admin-only approval).
+Last run: 9 Nov 2026, 21/21 passed.

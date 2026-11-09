@@ -2,12 +2,13 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { AppText, Button, Field, Notice, Screen } from '@/components/ui';
-import { toOmanE164 } from '@/lib/auth';
+import { toOmanE164, useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { friendlyError, supabase } from '@/lib/supabase';
 
 export default function Login() {
   const { t } = useI18n();
+  const { isGuest } = useAuth();
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -19,7 +20,10 @@ export default function Login() {
     if (!e164) return setError(t('invalidPhone'));
     setBusy(true);
     setError(null);
-    const { error: err } = await supabase.auth.signInWithOtp({ phone: e164 });
+    // A guest who registers keeps their orders: we attach the phone to the same account.
+    const { error: err } = isGuest
+      ? await supabase.auth.updateUser({ phone: e164 })
+      : await supabase.auth.signInWithOtp({ phone: e164 });
     setBusy(false);
     if (err) return setError(friendlyError(err, t('loadError')));
     setSentTo(e164);
@@ -29,7 +33,7 @@ export default function Login() {
     if (!sentTo) return;
     setBusy(true);
     setError(null);
-    const { error: err } = await supabase.auth.verifyOtp({ phone: sentTo, token: code.trim(), type: 'sms' });
+    const { error: err } = await supabase.auth.verifyOtp({ phone: sentTo, token: code.trim(), type: isGuest ? 'phone_change' : 'sms' });
     setBusy(false);
     if (err) return setError(friendlyError(err, t('loadError')));
     if (router.canGoBack()) router.back();

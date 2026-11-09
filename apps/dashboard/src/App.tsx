@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 
 import { ClinicalReview } from './ClinicalReview';
 import { nextStep, STATUS_AR, FULFILMENT_AR, errorText, omr, supabase, type Fulfilment, type OrderStatus } from './supabase';
@@ -65,7 +65,7 @@ function Workspace({ session }: { session: Session }) {
   const [role, setRole] = useState<Role | null>(null);
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [myIds, setMyIds] = useState<string[]>([]);
-  const [tab, setTab] = useState<'orders' | 'stock' | 'admin' | 'clinical'>('orders');
+  const [tab, setTab] = useState<'orders' | 'stock' | 'admin' | 'clinical' | 'clinics'>('orders');
 
   const loadMe = useCallback(async () => {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
@@ -96,6 +96,7 @@ function Workspace({ session }: { session: Session }) {
           {!isReviewer && <button className={tab === 'stock' ? 'on' : ''} onClick={() => setTab('stock')}>المخزون والأسعار</button>}
           {(isAdmin || isReviewer) && <button className={tab === 'clinical' || isReviewer ? 'on' : ''} onClick={() => setTab('clinical')}>المراجعة السريرية</button>}
           {isAdmin && <button className={tab === 'admin' ? 'on' : ''} onClick={() => setTab('admin')}>الصيدليات</button>}
+          {isAdmin && <button className={tab === 'clinics' ? 'on' : ''} onClick={() => setTab('clinics')}>العيادات والطب المرئي</button>}
           <button className="ghost" onClick={() => supabase.auth.signOut()}>خروج</button>
         </nav>
       </header>
@@ -110,6 +111,8 @@ function Workspace({ session }: { session: Session }) {
           <Orders />
         ) : tab === 'stock' ? (
           <Stock pharmacies={mine} />
+        ) : tab === 'clinics' ? (
+          <AdminClinics />
         ) : (
           <AdminPharmacies pharmacies={pharmacies} onChange={loadMe} />
         )}
@@ -155,6 +158,9 @@ type OrderRow = {
   status: OrderStatus;
   total_omr: number;
   delivery_address: string;
+  contact_name: string | null;
+  contact_phone: string | null;
+  is_guest: boolean;
   requires_rx: boolean;
   created_at: string;
   customer_id: string;
@@ -201,7 +207,7 @@ function Orders() {
   const load = useCallback(async () => {
     let q = supabase
       .from('orders')
-      .select('id, status, total_omr, delivery_address, requires_rx, created_at, customer_id, pharmacy_id, driver_id, fulfilment, order_items(id, product_name, quantity, unit_price_omr), prescriptions(id, status, storage_path, review_note)')
+      .select('id, status, total_omr, delivery_address, contact_name, contact_phone, is_guest, requires_rx, created_at, customer_id, pharmacy_id, driver_id, fulfilment, order_items(id, product_name, quantity, unit_price_omr), prescriptions(id, status, storage_path, review_note)')
       .order('created_at', { ascending: false })
       .limit(100);
     if (filter === 'open') q = q.not('status', 'in', '(delivered,collected,cancelled)');
@@ -274,6 +280,12 @@ function Orders() {
             <p>
               <strong>{FULFILMENT_AR[o.fulfilment]}</strong>
               {o.fulfilment === 'pickup' ? ' — الدفع عند الاستلام' : ` — ${o.delivery_address}`}
+              {o.contact_phone && (
+                <>
+                  <br />
+                  {o.is_guest && <span className="pill">ضيف</span>} {o.contact_name ?? ''} <span dir="ltr">{o.contact_phone}</span>
+                </>
+              )}
             </p>
             <ul>
               {o.order_items.map((i) => (
@@ -475,6 +487,98 @@ function AdminPharmacies({ pharmacies, onChange }: { pharmacies: Pharmacy[]; onC
         </tbody>
       </table>
       <p className="muted">لإضافة مندوب: يسجّل المندوب الدخول في التطبيق مرة واحدة برقم هاتفه، ثم أدخل رقمه هنا.</p>
+    </section>
+  );
+}
+
+type ClinicRow = {
+  id: string;
+  name_ar: string;
+  kind: 'telemedicine' | 'clinic';
+  license_number: string | null;
+  phone: string | null;
+  booking_url: string | null;
+  is_verified: boolean;
+};
+
+function AdminClinics() {
+  const [rows, setRows] = useState<ClinicRow[]>([]);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [form, setForm] = useState({ name_ar: '', kind: 'telemedicine', license_number: '', phone: '', whatsapp: '', booking_url: '', specialties_ar: '' });
+
+  const load = useCallback(async () => {
+    const { data } = await supabase
+      .from('clinics')
+      .select('id, name_ar, kind, license_number, phone, booking_url, is_verified')
+      .order('created_at', { ascending: false });
+    setRows((data as ClinicRow[] | null) ?? []);
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const e164 = (v: string) => {
+    const d = v.replace(/\D/g, '').replace(/^968/, '');
+    return d ? `+968${d}` : null;
+  };
+  const add = async (ev: FormEvent) => {
+    ev.preventDefault();
+    const { error } = await supabase.from('clinics').insert({
+      name_ar: form.name_ar.trim(),
+      kind: form.kind,
+      license_number: form.license_number.trim() || null,
+      phone: e164(form.phone),
+      whatsapp: e164(form.whatsapp),
+      booking_url: form.booking_url.trim() || null,
+      specialties_ar: form.specialties_ar.trim() || null,
+    });
+    setMsg(error ? errorText(error) : 'تمت إضافة العيادة (غير معتمدة بعد).');
+    if (!error) setForm({ name_ar: '', kind: 'telemedicine', license_number: '', phone: '', whatsapp: '', booking_url: '', specialties_ar: '' });
+    load();
+  };
+  const toggle = async (c: ClinicRow) => {
+    if (!window.confirm(c.is_verified ? `إيقاف ظهور ${c.name_ar}؟` : `اعتماد ${c.name_ar} بعد التحقق من الترخيص؟`)) return;
+    const { error } = await supabase.rpc('admin_set_clinic_verified', { p_clinic_id: c.id, p_verified: !c.is_verified });
+    setMsg(error ? errorText(error) : null);
+    load();
+  };
+  const set = (k: keyof typeof form) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [k]: e.target.value });
+
+  return (
+    <section>
+      <h2>العيادات والطب المرئي</h2>
+      <p className="muted">العيادات المعتمدة فقط تظهر للمرضى في التطبيق تحت «استشارة طبية عن بُعد».</p>
+      {msg && <p className="warn">{msg}</p>}
+      <table>
+        <thead><tr><th>الاسم</th><th>النوع</th><th>الترخيص</th><th>الحالة</th><th /></tr></thead>
+        <tbody>
+          {rows.map((c) => (
+            <tr key={c.id}>
+              <td>{c.name_ar}</td>
+              <td>{c.kind === 'telemedicine' ? 'طب مرئي' : 'عيادة'}</td>
+              <td dir="ltr">{c.license_number ?? '—'}</td>
+              <td>{c.is_verified ? 'معتمدة' : 'بانتظار التحقق'}</td>
+              <td><button className={c.is_verified ? 'ghost' : ''} onClick={() => toggle(c)}>{c.is_verified ? 'إيقاف' : 'اعتماد'}</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <form className="card" onSubmit={add}>
+        <h3>إضافة عيادة</h3>
+        <label>الاسم<input required minLength={2} value={form.name_ar} onChange={set('name_ar')} /></label>
+        <label>النوع
+          <select value={form.kind} onChange={set('kind')}>
+            <option value="telemedicine">طب مرئي (عن بُعد)</option>
+            <option value="clinic">عيادة خاصة</option>
+          </select>
+        </label>
+        <label>رقم الترخيص<input value={form.license_number} onChange={set('license_number')} dir="ltr" /></label>
+        <label>التخصصات<input value={form.specialties_ar} onChange={set('specialties_ar')} /></label>
+        <label>الهاتف (8 أرقام)<input value={form.phone} onChange={set('phone')} dir="ltr" inputMode="tel" /></label>
+        <label>واتساب (8 أرقام)<input value={form.whatsapp} onChange={set('whatsapp')} dir="ltr" inputMode="tel" /></label>
+        <label>رابط الحجز (https://)<input value={form.booking_url} onChange={set('booking_url')} dir="ltr" type="url" /></label>
+        <button type="submit">إضافة</button>
+      </form>
     </section>
   );
 }

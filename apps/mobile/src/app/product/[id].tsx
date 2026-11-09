@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Platform, StyleSheet, View } from 'react-native';
 
+import { MemberDose } from '@/components/member-dose';
 import { AppText, Badge, Button, Card, ErrorState, Loading, Notice, Screen } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/theme';
 import { useCart } from '@/lib/cart';
@@ -63,6 +64,8 @@ export default function ProductScreen() {
           <AppText>{pick(p.usage_ar, p.usage_en)}</AppText>
         </Card>
       )}
+
+      <MemberDose productId={p.id} />
 
       <AppText variant="heading">{t('compareOffers')}</AppText>
       {offers.length === 0 && <AppText>{t('outOfStock')}</AppText>}

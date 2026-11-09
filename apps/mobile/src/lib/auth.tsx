@@ -4,9 +4,26 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { supabase } from './supabase';
 
 export type Role = 'customer' | 'pharmacy_staff' | 'driver' | 'admin' | 'clinical_reviewer';
-type AuthValue = { session: Session | null; ready: boolean; role: Role | null };
+type AuthValue = {
+  session: Session | null;
+  ready: boolean;
+  role: Role | null;
+  /** Signed in without a phone number (guest checkout). */
+  isGuest: boolean;
+  /** Signed in with a verified phone number: unlocks the family health record. */
+  isRegistered: boolean;
+};
 
-const AuthContext = createContext<AuthValue>({ session: null, ready: false, role: null });
+const AuthContext = createContext<AuthValue>({ session: null, ready: false, role: null, isGuest: false, isRegistered: false });
+
+/** Guests can order without registering: we create an anonymous session the first time they check out. */
+export async function ensureSession(): Promise<Session> {
+  const { data } = await supabase.auth.getSession();
+  if (data.session) return data.session;
+  const { data: created, error } = await supabase.auth.signInAnonymously();
+  if (error || !created.session) throw error ?? new Error('guest sign-in failed');
+  return created.session;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -39,7 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [userId]);
 
   const role = userId && roleFor?.userId === userId ? roleFor.role : null;
-  return <AuthContext.Provider value={{ session, ready, role }}>{children}</AuthContext.Provider>;
+  const isGuest = !!session?.user.is_anonymous;
+  const isRegistered = !!session && !isGuest;
+  return <AuthContext.Provider value={{ session, ready, role, isGuest, isRegistered }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);

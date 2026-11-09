@@ -7,7 +7,7 @@ Read it fully before doing any work. Keep it current; it is the project's standi
 
 - **Product:** Awafy (عوافي) — "care & pharmacy". A service for ordering medicines and health products
   from licensed private pharmacies in Oman, with home delivery.
-- **Owner / CEO:** project owner (alqaudi99@gmail.com). Final decision-maker on everything.
+- **Owner / CEO:** project owner (alqaudi99@gmail.com), sole owner since 9 Nov 2026. Final decision-maker on everything.
 - **Claude's role:** AI Project Manager, CTO and technical lead. Plans, builds, reviews, reports.
 - **Language & market:** Arabic first (right-to-left), English second. Oman. Currency OMR.
 - **Users:** patients/customers, pharmacy staff, delivery drivers, platform admin.
@@ -75,8 +75,11 @@ files; bypass access controls; use real patient data in development or staging.
 - Comply with Oman's Personal Data Protection Law and Ministry of Health rules. Data-hosting location
   and pharmacy licensing must be confirmed by the owner's legal advisor before any real data goes live.
 - The dosage calculator and symptom helper are clinical content. Every record must carry
-  `reviewed_by` / `review_date` from a licensed pharmacist; changes are audit-logged; the app shows
-  a "consult your pharmacist/doctor" notice. No clinical content ships without owner + pharmacist sign-off.
+  `reviewed_by` / `review_date` from the clinical reviewer; changes are audit-logged; the app shows
+  a "consult your pharmacist/doctor" notice. No clinical content ships without the owner's sign-off
+  (sole clinical reviewer from 9 Nov 2026; Ahmed is no longer involved).
+- Family health records (members, weights, medicines) are visible only to the registered account holder:
+  never to pharmacies, drivers or admins. Guests (no account) cannot create them.
 - Prescription-only medicines require an approved prescription before the order can be fulfilled.
 
 ## 6. Engineering standards
@@ -111,7 +114,7 @@ Include budget/subscription changes when any occur.
 | 2026-11-03 | Project dashboard kept in Notion (connected) with a mirror in `docs/` | Done |
 | 2026-11-04 | Security review fixes (0004) approved by owner ("proceed") and applied to dev; 0005 trigger fix, 0006 stock + drivers; 20/20 access checks passed | Done |
 | 2026-11-04 | Phase 1 = order in app, collect and pay at the pharmacy; delivery = Phase 2 | Superseded 7 Nov |
-| 2026-11-04 | Dosage, symptom and growth tools in v1; clinical reviewers = owner + colleague Ahmed (role `clinical_reviewer`) | Owner decision |
+| 2026-11-04 | Dosage, symptom and growth tools in v1; clinical reviewers = owner + colleague Ahmed (role `clinical_reviewer`) | Changed 9 Nov: owner is sole reviewer |
 | 2026-11-04 | Prototype calculator errors found (honey per-kg, ibuprofen daily max unit, ondansetron, rounding, "0 tablets"); corrected copy in `prototype/` | Owner approved publishing 7 Nov; owner uploads (this session cannot reach the file server) |
 | 2026-11-04 | SMS login via Omantel (developer OTP API) — owner choice | On hold until the Saeed / You Vers partnership is settled (7 Nov) |
 | 2026-11-04 | GitHub repo `alqaudi99-alt/awafy` (private) connected; full history pushed to `main`, `dev` branch created | Done |
@@ -119,3 +122,7 @@ Include budget/subscription changes when any occur.
 | 2026-11-07 | Daily status (Sun–Thu 08:13 Muscat) and weekly report (Thu 14:42 Muscat) scheduled tasks, push notifications | Owner approved; running |
 | 2026-11-07 | Company contact number = owner's number +968 99022641 (call/WhatsApp in app) until a company line exists | Owner decision |
 | 2026-11-07 | Legal/licensing checks done by owner personally; pilot pharmacy later; NDA and partnership contract pending owner's edits; trademark filing after logo is final | Owner decision |
+| 2026-11-09 | Ahmed has left the project; owner is the sole owner and sole clinical reviewer | Owner decision |
+| 2026-11-09 | Dr Saeed (You Vers) has signed the NDA; business case may be shared with him | Owner |
+| 2026-11-09 | **Order without an account** (guest = anonymous sign-in + name/phone, max 2 open orders). Registered users get the family health record: members, weight/length history, medicines, dose worked out from the latest weight (approved records only), reminder when weight is out of date (under 1 yr: 30 days, under 5 yrs: 90, else 180) | Built; migrations 0010–0011 on dev, 21/21 checks passed. Owner to switch on anonymous sign-ins in Supabase |
+| 2026-11-09 | Telemedicine / private clinics directory: admin adds and verifies clinics; patients see verified ones under "online doctor consultation". E-prescriptions from clinics = next step | Built (directory); e-prescription pending |

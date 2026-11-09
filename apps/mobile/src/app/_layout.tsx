@@ -22,6 +22,9 @@ function RootStack() {
       <Stack.Screen name="order/[id]" options={{ title: t('timeline') }} />
       <Stack.Screen name="checkout" options={{ title: t('checkout') }} />
       <Stack.Screen name="login" options={{ title: t('loginTitle'), presentation: 'modal' }} />
+      <Stack.Screen name="family/index" options={{ title: t('familyTitle') }} />
+      <Stack.Screen name="family/[id]" options={{ title: '' }} />
+      <Stack.Screen name="clinics" options={{ title: t('clinicsTitle') }} />
     </Stack>
   );
 }

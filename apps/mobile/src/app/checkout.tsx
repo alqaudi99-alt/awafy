@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText, Button, Card, Field, Notice, Screen } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/theme';
-import { useAuth } from '@/lib/auth';
+import { ensureSession, toOmanE164, useAuth } from '@/lib/auth';
 import { useCart } from '@/lib/cart';
 import { DELIVERY_ENABLED } from '@/lib/features';
 import { useI18n } from '@/lib/i18n';
@@ -15,7 +15,7 @@ type PharmacyInfo = { address: string | null; phone: string | null; delivery_fee
 
 export default function Checkout() {
   const { t, pick, money } = useI18n();
-  const { session } = useAuth();
+  const { session, isRegistered } = useAuth();
   const { cart, subtotal, hasRx, clear } = useCart();
   const [mode, setMode] = useState<Fulfilment>('pickup');
   const [pharmacy, setPharmacy] = useState<PharmacyInfo | null>(null);
@@ -25,12 +25,11 @@ export default function Checkout() {
   const [details, setDetails] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Guests (no account) give a name and phone so the pharmacy can reach them.
+  const [guestName, setGuestName] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
 
   useEffect(() => {
-    if (!session) {
-      router.replace('/login');
-      return;
-    }
     if (cart.pharmacyId) {
       supabase
         .from('pharmacies')
@@ -39,7 +38,18 @@ export default function Checkout() {
         .single()
         .then(({ data }) => setPharmacy(data));
     }
-    if (DELIVERY_ENABLED) {
+    if (session && !isRegistered) {
+      supabase
+        .from('profiles')
+        .select('full_name, contact_phone')
+        .eq('id', session.user.id)
+        .single()
+        .then(({ data }) => {
+          if (data?.full_name) setGuestName(data.full_name);
+          if (data?.contact_phone) setGuestPhone(String(data.contact_phone).replace(/^\+968/, ''));
+        });
+    }
+    if (DELIVERY_ENABLED && session) {
       supabase
         .from('addresses')
         .select('id, label, details')
@@ -49,7 +59,7 @@ export default function Checkout() {
           if (data?.[0]) setSelected(data[0].id);
         });
     }
-  }, [session, cart.pharmacyId]);
+  }, [session, isRegistered, cart.pharmacyId]);
 
   const normalFee = Number(pharmacy?.delivery_fee_omr ?? 0);
   const urgentFee = pharmacy?.urgent_delivery_fee_omr == null ? null : Number(pharmacy.urgent_delivery_fee_omr);
@@ -58,10 +68,24 @@ export default function Checkout() {
   const items = cart.lines.map((l) => ({ product_id: l.productId, quantity: l.quantity }));
 
   const placeOrder = async () => {
-    if (!session || !cart.pharmacyId) return;
-    setBusy(true);
+    if (!cart.pharmacyId) return;
     setError(null);
+    let guestPhoneE164: string | null = null;
+    if (!isRegistered) {
+      if (guestName.trim().length < 2) return setError(t('guestNameNeeded'));
+      guestPhoneE164 = toOmanE164(guestPhone);
+      if (!guestPhoneE164) return setError(t('invalidPhone'));
+    }
+    setBusy(true);
     try {
+      const current = await ensureSession();
+      if (guestPhoneE164) {
+        const { error: err } = await supabase
+          .from('profiles')
+          .update({ full_name: guestName.trim(), contact_phone: guestPhoneE164 })
+          .eq('id', current.user.id);
+        if (err) throw err;
+      }
       let orderId: string;
       // Prices, stock and totals are checked by the database; the app only sends product ids and quantities.
       if (mode === 'pickup') {
@@ -74,7 +98,7 @@ export default function Checkout() {
           if (details.trim().length < 5) throw new Error(t('addressDetails'));
           const { data, error: err } = await supabase
             .from('addresses')
-            .insert({ user_id: session.user.id, label: label.trim() || null, details: details.trim() })
+            .insert({ user_id: current.user.id, label: label.trim() || null, details: details.trim() })
             .select('id')
             .single();
           if (err) throw err;
@@ -118,6 +142,26 @@ export default function Checkout() {
             </AppText>
           ) : null}
         </View>
+      )}
+
+      {!isRegistered && (
+        <Card>
+          <AppText variant="heading">{t('guestTitle')}</AppText>
+          <AppText variant="small" style={{ color: Colors.textSecondary }}>
+            {t('guestSubtitle')}
+          </AppText>
+          <Field label={t('guestName')} value={guestName} onChangeText={setGuestName} autoComplete="name" textContentType="name" />
+          <Field
+            label={t('phone')}
+            value={guestPhone}
+            onChangeText={setGuestPhone}
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            textContentType="telephoneNumber"
+            placeholder="9XXXXXXX"
+          />
+          <Button title={t('guestRegisterCta')} variant="secondary" onPress={() => router.push('/login')} />
+        </Card>
       )}
 
       {mode === 'pickup' ? (

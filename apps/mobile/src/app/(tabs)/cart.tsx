@@ -3,13 +3,11 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText, Badge, Button, Card, Notice, Screen } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
-import { useAuth } from '@/lib/auth';
 import { useCart } from '@/lib/cart';
 import { useI18n } from '@/lib/i18n';
 
 export default function CartScreen() {
   const { t, pick, money } = useI18n();
-  const { session } = useAuth();
   const { cart, subtotal, hasRx, setQuantity, remove } = useCart();
 
   if (cart.lines.length === 0) {
@@ -62,8 +60,8 @@ export default function CartScreen() {
       </Card>
 
       <Button
-        title={session ? t('checkout') : t('loginRequired')}
-        onPress={() => router.push(session ? '/checkout' : '/login')}
+        title={t('checkout')}
+        onPress={() => router.push('/checkout')}
       />
     </Screen>
   );

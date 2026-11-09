@@ -48,6 +48,19 @@ export default function Home() {
         />
       </View>
 
+      <View style={styles.quick}>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/clinics')} style={styles.quickItem}>
+          <Card style={{ flex: 1 }}>
+            <AppText variant="label">{t('clinicsTitle')}</AppText>
+          </Card>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/family')} style={styles.quickItem}>
+          <Card style={{ flex: 1 }}>
+            <AppText variant="label">{t('familyTitle')}</AppText>
+          </Card>
+        </Pressable>
+      </View>
+
       <AppText variant="heading">{t('categories')}</AppText>
       <View style={styles.grid}>
         {(categories.data ?? []).map((category) => (
@@ -83,6 +96,8 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  quick: { flexDirection: 'row', gap: 8 },
+  quickItem: { flex: 1 },
   hero: { backgroundColor: Colors.primary, borderRadius: Radius.lg, padding: Spacing.xl, gap: Spacing.sm },
   heroTitle: { color: Colors.onPrimary },
   heroText: { color: Colors.primaryContainer },
