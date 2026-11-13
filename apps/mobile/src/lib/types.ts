@@ -1,6 +1,6 @@
 export type Lang = 'ar' | 'en';
 
-export type Category = { id: number; name_ar: string; name_en: string; sort_order: number };
+export type Category = { id: number; name_ar: string; name_en: string; sort_order: number; icon: string | null; color: string | null };
 
 export type Product = {
   id: number;
@@ -11,6 +11,7 @@ export type Product = {
   usage_en: string | null;
   requires_rx: boolean;
   restricted: boolean;
+  image_url: string | null;
 };
 
 export type Pharmacy = {
@@ -24,6 +25,7 @@ export type Offer = {
   pharmacy_id: string;
   product_id: number;
   price_omr: number;
+  compare_at_price_omr: number | null;
   quantity: number;
   pharmacies: Pharmacy | null;
 };

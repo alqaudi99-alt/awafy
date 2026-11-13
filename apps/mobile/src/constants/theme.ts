@@ -18,6 +18,13 @@ export const Colors = {
   errorContainer: '#FFDAD6',
   gold: '#7F5900',
   goldContainer: '#FFE086',
+  // Storefront (logo direction chosen 12 Nov: teal figure, apricot leaf, navy wordmark)
+  header: '#0E6A64',
+  headerDeep: '#0A4F4B',
+  ink: '#1C2B4A',
+  apricot: '#EE7D45',
+  apricotSoft: '#FFE9DC',
+  mist: '#F2F6F5',
 } as const;
 
 export const Spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;

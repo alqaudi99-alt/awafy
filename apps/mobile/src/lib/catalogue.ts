@@ -4,7 +4,7 @@ import { supabase } from './supabase';
 import type { Category, ProductWithOffers } from './types';
 
 const PRODUCT_SELECT =
-  'id, category_id, name_ar, name_en, usage_ar, usage_en, requires_rx, restricted, pharmacy_stock(pharmacy_id, product_id, price_omr, quantity, pharmacies(id, name_ar, name_en, delivery_fee_omr))';
+  'id, category_id, name_ar, name_en, usage_ar, usage_en, requires_rx, restricted, image_url, pharmacy_stock(pharmacy_id, product_id, price_omr, compare_at_price_omr, quantity, pharmacies(id, name_ar, name_en, delivery_fee_omr))';
 
 type State<T> = { data: T | null; loading: boolean; error: boolean; reload: () => void };
 
@@ -37,7 +37,7 @@ function useQuery<T>(run: () => PromiseLike<{ data: T | null; error: unknown }>,
 
 export function useCategories() {
   return useQuery<Category[]>(
-    () => supabase.from('categories').select('id, name_ar, name_en, sort_order').order('sort_order'),
+    () => supabase.from('categories').select('id, name_ar, name_en, sort_order, icon, color').order('sort_order'),
     [],
   );
 }
@@ -68,4 +68,14 @@ export function matchesSearch(product: ProductWithOffers, term: string) {
   const q = term.trim().toLowerCase();
   if (!q) return true;
   return product.name_ar.toLowerCase().includes(q) || (product.name_en ?? '').toLowerCase().includes(q);
+}
+
+/** Percentage saved on the cheapest offer, shown only for products that need no prescription. */
+export function discountPercent(product: ProductWithOffers): number | null {
+  if (product.requires_rx) return null;
+  const best = availableOffers(product)[0];
+  if (!best?.compare_at_price_omr) return null;
+  const was = Number(best.compare_at_price_omr);
+  const now = Number(best.price_omr);
+  return was > now ? Math.round((1 - now / was) * 100) : null;
 }

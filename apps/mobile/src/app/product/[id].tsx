@@ -6,7 +6,8 @@ import { MemberDose } from '@/components/member-dose';
 import { AppText, Badge, Button, Card, ErrorState, Loading, Notice, Screen } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/theme';
 import { useCart } from '@/lib/cart';
-import { availableOffers, useProduct } from '@/lib/catalogue';
+import { availableOffers, discountPercent, useCategories, useProduct } from '@/lib/catalogue';
+import { ProductImage } from '@/components/store';
 import { useI18n } from '@/lib/i18n';
 import type { Offer, ProductWithOffers } from '@/lib/types';
 
@@ -26,12 +27,14 @@ export default function ProductScreen() {
   const { t, pick, money } = useI18n();
   const { add } = useCart();
   const product = useProduct(Number(id));
+  const categories = useCategories();
   const [addedFrom, setAddedFrom] = useState<string | null>(null);
 
   if (product.loading) return <Loading />;
   if (product.error || !product.data) return <ErrorState onRetry={product.reload} />;
   const p: ProductWithOffers = product.data;
   const offers = availableOffers(p);
+  const off = discountPercent(p);
 
   const addOffer = async (offer: Offer) => {
     if (!offer.pharmacies) return;
@@ -54,7 +57,21 @@ export default function ProductScreen() {
   return (
     <Screen>
       <Stack.Screen options={{ title: pick(p.name_ar, p.name_en) }} />
+      <View>
+        <ProductImage product={p} category={categories.data?.find((c) => c.id === p.category_id)} size="hero" />
+        {off ? (
+          <View style={styles.off}>
+            <AppText style={styles.offText}>{`-${off}%`}</AppText>
+          </View>
+        ) : null}
+      </View>
       <AppText variant="title">{pick(p.name_ar, p.name_en)}</AppText>
+      {offers[0] && (
+        <View style={styles.priceRow}>
+          <AppText style={styles.price}>{money(Number(offers[0].price_omr))}</AppText>
+          {off && offers[0].compare_at_price_omr ? <AppText style={styles.was}>{money(Number(offers[0].compare_at_price_omr))}</AppText> : null}
+        </View>
+      )}
       {p.restricted ? (
         <>
           <Badge text={t('restrictedBadge')} tone="danger" />
@@ -104,4 +121,9 @@ export default function ProductScreen() {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   best: { borderColor: Colors.primary, borderWidth: 2 },
+  off: { position: 'absolute', top: 10, start: 10, backgroundColor: Colors.apricot, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  offText: { color: '#FFFFFF', fontWeight: '800', writingDirection: 'ltr' },
+  priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.sm },
+  price: { fontSize: 24, fontWeight: '900', color: Colors.ink },
+  was: { fontSize: 15, color: Colors.outline, textDecorationLine: 'line-through' },
 });

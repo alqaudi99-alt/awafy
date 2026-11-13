@@ -22,6 +22,20 @@ export function MemberDose({ productId }: { productId: number }) {
   const [members, setMembers] = useState<{ id: string; name: string }[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [dose, setDose] = useState<{ memberId: string; result: DoseResult } | null>(null);
+  // Only medicines with a dosage record get a dose card (not cosmetics or care products).
+  const [hasDosage, setHasDosage] = useState<{ id: number; yes: boolean } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    supabase
+      .from('product_dosage')
+      .select('dosage_id', { count: 'exact', head: true })
+      .eq('product_id', productId)
+      .then(({ count }) => alive && setHasDosage({ id: productId, yes: (count ?? 0) > 0 }));
+    return () => {
+      alive = false;
+    };
+  }, [productId]);
 
   useEffect(() => {
     if (!isRegistered) return;
@@ -46,6 +60,7 @@ export function MemberDose({ productId }: { productId: number }) {
     };
   }, [selected, productId]);
 
+  if (!hasDosage || hasDosage.id !== productId || !hasDosage.yes) return null;
   if (!isRegistered) {
     return (
       <Card>
